@@ -43,7 +43,7 @@ def parsing(query):
 
   print(select, from_ind, where_ind, len(parsed.tokens))
 
-  if (where > 0):
+  if (where_ind > 0):
   	select_columns = get_columns_or_tables(parsed, select, from_ind)
   	from_tables = get_columns_or_tables(parsed, from_ind, where_ind)
   	get_tables(from_tables)
