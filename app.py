@@ -41,14 +41,16 @@ def parsing(query):
     elif item.ttype is None and isinstance(item, Where):
       where_ind = parsed.tokens.index(item)
 
-  print(select, from_ind, where_ind)
-
-  select_columns = get_columns_or_tables(parsed, select, from_ind)
-  from_tables = get_columns_or_tables(parsed, from_ind, where_ind)
-  get_tables(from_tables)
+  print(select, from_ind, where_ind, len(parsed.tokens))
 
   if (where > 0):
+  	select_columns = get_columns_or_tables(parsed, select, from_ind)
+  	from_tables = get_columns_or_tables(parsed, from_ind, where_ind)
+  	get_tables(from_tables)
   	where_condition = get_conditions(parsed, where_ind)
+  else:
+  	select_columns = get_columns_or_tables(parsed, select, from_ind)
+  	from_tables = get_columns_or_tables(parsed, from_ind, len(parsed.tokens))
 
   #make sure that all the attributes in the select and where
   #match with the attributes of the tables
