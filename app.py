@@ -55,6 +55,8 @@ def parsing(query):
   #figure out how exactly to do the computations
   query_plan()
 
+  #More to do...not sure what yet
+
 
 
 def get_tables(table_list):
@@ -72,9 +74,20 @@ def query_plan():
 
 
 def get_columns_or_tables(parsed, start, stop):
+  '''
+  Returns the names of the columns after the SELECT keyword or 
+  the names of the tables after the FROM keyword
+
+  Input: 
+    parsed List: Parsed query tokens 
+    start int: starting point of SELECT or FROM
+    stop int: ending point of SELECT or From statement
+
+  Returns: List of strings
+
+  '''
   token_stream = parsed.tokens[start:stop]
   print(token_stream)
-  case = -1
   for item in token_stream:
     if isinstance(item, IdentifierList) or isinstance(item, Identifier): 
       print(item.value.split(','))
@@ -82,6 +95,13 @@ def get_columns_or_tables(parsed, start, stop):
 
 
 def get_conditions(parsed, start):
+  '''
+  Gets the conditions from the where clause and returns them in a list
+  The conditions are kept in the same order as written and the operators 
+  are also there in the same order
+
+  Returns: List of strings
+  '''
   token_stream = parsed.tokens[start:]
   parsed_where = next(token for token in token_stream if isinstance(token, Where))[1:]
   # print(parsed_where)
