@@ -46,7 +46,9 @@ def parsing(query):
   select_columns = get_columns_or_tables(parsed, select, from_ind)
   from_tables = get_columns_or_tables(parsed, from_ind, where_ind)
   get_tables(from_tables)
-  where_condition = get_conditions(parsed, where_ind)
+
+  if (where > 0):
+  	where_condition = get_conditions(parsed, where_ind)
 
   #make sure that all the attributes in the select and where
   #match with the attributes of the tables
@@ -104,11 +106,11 @@ def get_conditions(parsed, start):
   '''
   token_stream = parsed.tokens[start:]
   parsed_where = next(token for token in token_stream if isinstance(token, Where))[1:]
-  # print(parsed_where)
+  print(parsed_where)
   # print(parsed_where[1].value)
   conditions = []
   for token in parsed_where:
-    if token.ttype is Keyword:
+    if token.ttype is Keyword or token.ttype is Operator:
       conditions.append(token.value)
     if token.ttype is None:
       conditions.append(token.value)
