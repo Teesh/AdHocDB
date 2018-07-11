@@ -1,7 +1,14 @@
 import argparse
 import sqlparse
+import pandas
 from sqlparse.sql import *
 from sqlparse.tokens import *
+
+#conds = ["movies.movie_title == 'King Kong'","movies.actor_1_facebook_likes < 20000","actor_2_facebook_likes > actor_1_facebook_likes","movies.title_year < 2010"]
+
+#movies = pandas.read_csv('../Datasets/Movies/movies.csv')
+
+#print(movies[eval(conds[1]) & eval(conds[3])])
 
 def main():
   parser = argparse.ArgumentParser(description='Preprocessing files and running queries.')
@@ -60,7 +67,7 @@ def parsing(query):
   query_plan()
 
   #More to do...not sure what yet
-
+  #print(movies[eval(where_condition[0])]); 
 
 
 def get_tables(table_list):
