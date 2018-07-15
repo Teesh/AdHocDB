@@ -8,7 +8,7 @@ def main():
   parser.add_argument('--preprocess', metavar = 'Files', nargs='+', type=str,
                       help='Preprocess files where files are given in a space seperated list. Ex. File1 File2 ...')
   parser.add_argument('--query', type=str,  nargs='+',
-                      help='Run a query with the syntax SELECT <columns> FROM <tables> WHERE <condition>')
+                      help='Run a query with the syntax "SELECT <columns> FROM <tables> WHERE <condition>". Note: The quotations around the SELECT statement are very important.')
 
   args = parser.parse_args()
   query = args.query
@@ -21,7 +21,11 @@ def main():
     
   if query is None:
     #go to preprocessing function
+    preprocessing()
     print("here2")
+
+
+def preprocessing():
 
 
 def parsing(query):
@@ -46,18 +50,23 @@ def parsing(query):
   if (where_ind > 0):
   	select_columns = get_columns_or_tables(parsed, select, from_ind)
   	from_tables = get_columns_or_tables(parsed, from_ind, where_ind)
-  	get_tables(from_tables)
   	where_condition = get_conditions(parsed, where_ind)
   else:
   	select_columns = get_columns_or_tables(parsed, select, from_ind)
   	from_tables = get_columns_or_tables(parsed, from_ind, len(parsed.tokens))
 
+  #get columns that are listed in where clause
+  get_colums_from_whereclause()
+
+  #get the relevant columns from each table as required by the select and where functions
+  get_tables(from_tables, select_columns, where_condition)
   #make sure that all the attributes in the select and where
   #match with the attributes of the tables
-  verify_attributes()
+  #verify_attributes()
 
   #figure out how exactly to do the computations
   query_plan()
+  #
 
   #More to do...not sure what yet
 
