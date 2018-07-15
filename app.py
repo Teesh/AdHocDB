@@ -12,7 +12,7 @@ conds = ["movies.movie_title == 'King Kong'","movies.actor_1_facebook_likes < 20
 
 #print(movies[eval(conds[1]) & eval(conds[3])])
 
-path = "../Datasets/Movies/"
+path = "../Datasets/Yelp/"
 
 def main():
   parser = argparse.ArgumentParser(description='Preprocessing files and running queries.')
@@ -67,25 +67,12 @@ def parsing(query):
   	select_columns = get_columns_or_tables(parsed, select, from_ind)
   	from_tables = get_columns_or_tables(parsed, from_ind, len(parsed.tokens))
 
-  #get columns that are listed in where clause
-  #get_colums_from_whereclause()
-
-  #make sure that all the attributes in the select and where
-  #match with the attributes of the tables
-  #verify_attributes()
-
   #figure out how exactly to do the computations
   result = query_plan(from_tables, where_condition)
-
   print(projection(result, select_columns))
 
   end = time.time()
   print("Time:", end-start)
-  #
-
-  #More to do...not sure what yet
-  print("actual result")
-  # print(movies[eval(conds[1]) & eval(conds[3])])
 
 
 def projection(table, columns):
@@ -100,12 +87,18 @@ def query_plan(table_list, where_condition):
   for table in table_list:
     #use pandas here to upload the tables into memory
     globals()[table] = eval('pandas.read_csv("' +path+ table + '.csv")')
-    # eval(table + "=pandas.read_csv('./" + table + ".csv')")
+
 
   if len(table_list) == 1:
       cond_str = table_list[0] + create_cond_str(where_condition)
       return eval(cond_str)
 
+def rename_columns(table):
+    columns = list(eval(table))
+    newcol = {}
+    for c in columns:
+        newcol[c] = table + '.'+c
+    globals()[table] = eval(table + ".rename(columns=newcol)")
 
 def create_cond_str(where_condition):
     print(where_condition)
