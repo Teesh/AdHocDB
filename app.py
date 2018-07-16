@@ -100,8 +100,56 @@ def query_plan(table_list, where_condition):
         return eval(cond_str)
 
     else:
-        return create_bst(where_condition)
+        return eval_or(where_condition)
 
+
+def eval_or(conditions):
+    cond_lower = [c.lower() for c in conditions]
+    try:
+        a = cond_lower.find('or')
+        left = conditions[0:a]
+        right = conditions[a+1:]
+        left_eval = eval_and(left)
+        right_eval = eval_or(right)
+        return combine_or(left, right)
+    except ValueError:
+        return eval_and(conditions)
+
+def eval_and(conditions):
+    cond_lower = c.lower() for c in conditions]
+    try:
+        a = cond_lower.find('and')
+        left = conditions[0:a]
+        right = conditions[a+1:]
+        left_eval = eval_not(left)
+        right_eval = eval_and(right)
+        return combine_and(left, right)
+    except ValueError:
+        return eval_not(conditions)
+
+
+def eval_not(conditions):
+    cond_lower = c.lower() for c in conditions]
+    try:
+        a = cond_lower.find('not')
+        neg = negate(conditions[a+1:])
+        return eval_cond(neg)
+    except ValueError:
+        return eval_cond(conditions)
+
+
+def eval_cond(conditions):
+    pass
+
+
+def combine_and(conditions):
+    pass
+
+def combine_or(conditions):
+    pass
+
+def negate(conditions):
+    pass
 
 def rename_columns(table):
     columns = list(eval(table))
