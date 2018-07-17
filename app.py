@@ -12,7 +12,7 @@ conds = ["movies.movie_title == 'King Kong'","movies.actor_1_facebook_likes < 20
 
 #print(movies[eval(conds[1]) & eval(conds[3])])
 
-path = "../Datasets/Movies/"
+path = "Datasets/Movies/"
 
 def main():
     parser = argparse.ArgumentParser(description='Preprocessing files and running queries.')
@@ -116,7 +116,7 @@ def eval_or(conditions):
         return eval_and(conditions)
 
 def eval_and(conditions):
-    cond_lower = c.lower() for c in conditions]
+    cond_lower = [c.lower() for c in conditions]
     try:
         a = cond_lower.find('and')
         left = conditions[0:a]
@@ -129,7 +129,7 @@ def eval_and(conditions):
 
 
 def eval_not(conditions):
-    cond_lower = c.lower() for c in conditions]
+    cond_lower = [c.lower() for c in conditions]
     try:
         a = cond_lower.find('not')
         neg = negate(conditions[a+1:])
@@ -139,7 +139,11 @@ def eval_not(conditions):
 
 
 def eval_cond(conditions):
-    pass
+    result = []
+    left,op,right = comparision_parse(conditions)
+    processed = arithm_parse(left,op,right)
+    result.append(processed)
+    return result
 
 
 def combine_and(conditions):
@@ -149,7 +153,26 @@ def combine_or(conditions):
     pass
 
 def negate(conditions):
-    pass
+    left,op,right = comparision_parse(conditions)
+    if op == "=":
+        op = "<>"
+    elif op == "<>":
+        op = "="
+    
+    if op == "<=":
+        op = ">="
+    elif op == ">=":
+        op = "<="
+    
+    if op ==">":
+        op = "<"
+    elif op == "<":
+        op = ">"
+    result = []
+    result = append(left)
+    result = append(op)
+    result = append(right)
+    return (''.join(result))
 
 def rename_columns(table):
     columns = list(eval(table))
@@ -235,6 +258,59 @@ def get_conditions(parsed, start):
   # print(conditions)
   return conditions
 
+def condition_check(conditions):
+  count = 0
+  result = []
+  for item in conditions:
+    if item.upper() != "AND" and item.upper() != "OR" and item.upper() != "NOT":
+        left,op,right = comparision_parse(item)
+        processed = arithm_parse(left,op,right)
+        result.append(processed)
+        count = count +1
+    else:
+        result.append(item)
+  result.insert(0,count)
+  return result
+def arithm_parse(left,op,right):
+    for char in left:
+        if find_char_pos(left, '+') != -1 :
+            return ("left",left[0:find_char_pos(left, '+')],"+",left[find_char_pos(left, '+')+1:],op,right)
+        if find_char_pos(left, '-') != -1 :
+            return ("left",left[0:find_char_pos(left, '-')],"-",left[find_char_pos(left, '-')+1:],op,right)
+        if find_char_pos(left, '*') != -1 :
+            return ("left",left[0:find_char_pos(left, '*')],"*",left[find_char_pos(left, '*')+1:],op,right)
+        if find_char_pos(left, '/') != -1 :
+            return ("left",left[0:find_char_pos(left, '/')],"/",left[find_char_pos(left, '/')+1:],op,right)
+    for char in right:
+        if find_char_pos(right, '+') != -1 :
+            return ("right",left,op,right[0:find_char_pos(right, '+')],"+",right[find_char_pos(right, '+')+1:])
+        if find_char_pos(right, '-') != -1 :
+            return ("right",left,op,right[0:find_char_pos(right, '-')],"-",right[find_char_pos(right, '-')+1:])
+        if find_char_pos(right, '*') != -1 :
+            return ("right",left,op,right[0:find_char_pos(right, '*')],"*",right[find_char_pos(right, '*')+1:])
+        if find_char_pos(right, '/') != -1 :
+            return ("right",left,op,right[0:find_char_pos(right, '/')],"/",right[find_char_pos(right, '/')+1:])
+    return ("no_op",left,op,right)
+        
+def comparision_parse(item):
+    if (find_char_pos(item, '<') != -1 and find_char_pos(item, '=') != -1):
+            return (item[0:find_char_pos(item, '<')]),"<=",(item[find_char_pos(item, '=')+1:])
+    elif (find_char_pos(item, '>') != -1 and find_char_pos(item, '=') != -1):
+            return (item[0:find_char_pos(item, '>')]),">=",(item[find_char_pos(item, '=')+1:])
+    elif (find_char_pos(item, '<') != -1 and find_char_pos(item, '>') != -1):
+            return (item[0:find_char_pos(item, '<')]),"<>",(item[find_char_pos(item, '>')+1:])
+    elif find_char_pos(item, '<') != -1:
+            return (item[0:find_char_pos(item, '<')]),"<",(item[find_char_pos(item, '<')+1:])
+    elif find_char_pos(item, '>') != -1:
+            return (item[0:find_char_pos(item, '>')]),">",(item[find_char_pos(item, '>')+1:])
+    elif find_char_pos(item, '=') != -1:
+            return (item[0:find_char_pos(item, '=')]),"=",(item[find_char_pos(item, '=')+1:])
+        
+def find_char_pos(string, char):
+    if char in string:
+        return string.find(char)
+    else:
+        return -1
 
 if __name__ == "__main__":
     main()
