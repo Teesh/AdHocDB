@@ -106,7 +106,7 @@ def query_plan(table_list, where_condition):
 def eval_or(conditions):
     cond_lower = [c.lower() for c in conditions]
     try:
-        a = cond_lower.find('or')
+        a = cond_lower.index('or')
         left = conditions[0:a]
         right = conditions[a+1:]
         left_eval = eval_and(left)
@@ -118,7 +118,7 @@ def eval_or(conditions):
 def eval_and(conditions):
     cond_lower = [c.lower() for c in conditions]
     try:
-        a = cond_lower.find('and')
+        a = cond_lower.index('and')
         left = conditions[0:a]
         right = conditions[a+1:]
         left_eval = eval_not(left)
@@ -131,7 +131,7 @@ def eval_and(conditions):
 def eval_not(conditions):
     cond_lower = [c.lower() for c in conditions]
     try:
-        a = cond_lower.find('not')
+        a = cond_lower.index('not')
         neg = negate(conditions[a+1:])
         return eval_cond(neg)
     except ValueError:
@@ -158,13 +158,11 @@ def negate(conditions):
         op = "<>"
     elif op == "<>":
         op = "="
-    
-    if op == "<=":
+    elif op == "<=":
         op = ">="
     elif op == ">=":
         op = "<="
-    
-    if op ==">":
+    elif op ==">":
         op = "<"
     elif op == "<":
         op = ">"
@@ -291,7 +289,7 @@ def arithm_parse(left,op,right):
         if find_char_pos(right, '/') != -1 :
             return ("right",left,op,right[0:find_char_pos(right, '/')],"/",right[find_char_pos(right, '/')+1:])
     return ("no_op",left,op,right)
-        
+
 def comparision_parse(item):
     if (find_char_pos(item, '<') != -1 and find_char_pos(item, '=') != -1):
             return (item[0:find_char_pos(item, '<')]),"<=",(item[find_char_pos(item, '=')+1:])
@@ -305,7 +303,7 @@ def comparision_parse(item):
             return (item[0:find_char_pos(item, '>')]),">",(item[find_char_pos(item, '>')+1:])
     elif find_char_pos(item, '=') != -1:
             return (item[0:find_char_pos(item, '=')]),"=",(item[find_char_pos(item, '=')+1:])
-        
+
 def find_char_pos(string, char):
     if char in string:
         return string.find(char)
