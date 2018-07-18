@@ -269,6 +269,7 @@ def condition_check(conditions):
         result.append(item)
   result.insert(0,count)
   return result
+
 def arithm_parse(left,op,right):
     for char in left:
         if find_char_pos(left, '+') != -1 :
@@ -290,19 +291,40 @@ def arithm_parse(left,op,right):
             return ("right",left,op,right[0:find_char_pos(right, '/')],"/",right[find_char_pos(right, '/')+1:])
     return ("no_op",left,op,right)
 
+def check_num_table(left, right):
+    
+    pass
+
+def filter_comp():
+    pass
+
+def merge_comp():
+    pass
+
 def comparision_parse(item):
     if (find_char_pos(item, '<') != -1 and find_char_pos(item, '=') != -1):
-            return (item[0:find_char_pos(item, '<')]),"<=",(item[find_char_pos(item, '=')+1:])
+            side, left, op, right = (item[0:find_char_pos(item, '<')]),"<=",(item[find_char_pos(item, '=')+1:])
+            ntable = check_num_table(left, right)
     elif (find_char_pos(item, '>') != -1 and find_char_pos(item, '=') != -1):
-            return (item[0:find_char_pos(item, '>')]),">=",(item[find_char_pos(item, '=')+1:])
+            side, left, op, right =  (item[0:find_char_pos(item, '>')]),">=",(item[find_char_pos(item, '=')+1:])
+            ntable = check_num_table(left, right)
     elif (find_char_pos(item, '<') != -1 and find_char_pos(item, '>') != -1):
-            return (item[0:find_char_pos(item, '<')]),"<>",(item[find_char_pos(item, '>')+1:])
+            side, left, op, right =  (item[0:find_char_pos(item, '<')]),"<>",(item[find_char_pos(item, '>')+1:])
+            ntable = check_num_table(left, right)
     elif find_char_pos(item, '<') != -1:
-            return (item[0:find_char_pos(item, '<')]),"<",(item[find_char_pos(item, '<')+1:])
+            side, left, op, right =  (item[0:find_char_pos(item, '<')]),"<",(item[find_char_pos(item, '<')+1:])
+            ntable = check_num_table(left, right)
     elif find_char_pos(item, '>') != -1:
-            return (item[0:find_char_pos(item, '>')]),">",(item[find_char_pos(item, '>')+1:])
+            side, left, op, right =  (item[0:find_char_pos(item, '>')]),">",(item[find_char_pos(item, '>')+1:])
+            ntable = check_num_table(left, right)
     elif find_char_pos(item, '=') != -1:
-            return (item[0:find_char_pos(item, '=')]),"=",(item[find_char_pos(item, '=')+1:])
+            side, left, op, right =  (item[0:find_char_pos(item, '=')]),"=",(item[find_char_pos(item, '=')+1:])
+            ntable = check_num_table(left, right)
+
+    if ntable == 1:
+        filter_comp()
+    else:
+        merge_comp()
 
 def find_char_pos(string, char):
     if char in string:
