@@ -105,15 +105,17 @@ def query_plan(table_list, where_condition, select_columns):
 
 def eval_or(conditions, columns):
     cond_lower = [c.lower() for c in conditions]
-    try:
+    print(cond_lower)
+    if 'or' in cond_lower:
         a = cond_lower.index('or')
         left = conditions[0:a]
         right = conditions[a+1:]
         left_eval = eval_and(left)
         right_eval = eval_or(right)
         return combine_or(left, right, columns)
-    except ValueError:
+    else:
         return eval_and(conditions)
+
 
 
 def combine_or(table1, table2, columns):
@@ -123,7 +125,7 @@ def combine_or(table1, table2, columns):
 
 def eval_and(conditions):
     cond_lower = [c.lower() for c in conditions]
-    try:
+    if 'and' in cond_lower:
         a = cond_lower.index('and')
         left = conditions[0:a]
         right = conditions[a+1:]
@@ -133,7 +135,7 @@ def eval_and(conditions):
         left_cond = eval_not(left)
         #compbine table from right with left cond
         return combine_and(left_cond, right_table)
-    except ValueError:
+    else:
         #last condition, negate and then evaluate
         cond = eval_not(conditions)
         return eval_cond(cond)
@@ -141,60 +143,77 @@ def eval_and(conditions):
 
 def eval_not(condition):
     cond_lower = [c.lower() for c in condition]
-    try:
+    if 'not' in cond_lower:
         a = cond_lower.index('not')
         neg = negate(condition[a+1:])
         return neg
-    except ValueError:
+    else:
         return condition
 
 
 def combine_and(left_cond, right_result):
     left,binop,right = comparision_parse(left_cond)
-    left_left, arithm_op, left_right, binop, right = arithm_parse(left,binop,right)
+    left_left, arithm_op, left_right, binop, right = arithm_parse_eval(left,binop,right)
     ntable, left_table, right_table, left_col, right_col = check_num_table(left_left, right)
-    #left table should have been part of computations in right subtree
-    if arithm_op != None:
-        new_col = eval(right_result+"["+left_col"]"+arithm_op+left_left)
-        right_result.update(eval("pandas.DataFrame({'"left_col"': new_col})"))
-    #join using tmp and col with table from right subtree and right col
-    if ntable == 1 and left_col in right_result.columns:
-        #simple filter because column already in right_table
-        return(eval("right_result["+left_col+binop+right"]"))
-    else if ntable == 1 and left_col not in right_result.columns:
-        #join tables then filter
-        out = eval('right_result.merge('+left_table+')')
-        result = eval("out["left_col+binop+right"]")
-        return result
+
+    if left_col not in right_result.columns:
+        #completely disjoint
+        #evaluate left
+        left_result = eval_cond(left_cond)
+        #cross join with right
+        left_result['tmp'] = 1
+        right_result['tmp'] = 1
+        out = pd.merge(left_result, right_result, on='tmp')
+        result = eval("out["+left_col+binop+right+"]")
+        pass
     else:
-        #join and filter
-        out = eval('right_result.merge('+right_table+')')
-        result = eval("out["left_col+binop+right"]")
-        return result
+        #left table should have been part of computations in right subtree
+        if arithm_op != None:
+            new_col = eval(right_result+"["+left_col+"]"+arithm_op+left_left)
+            right_result.update(eval("pandas.DataFrame({'"+left_col+"': new_col})"))
+        #join using tmp and col with table from right subtree and right col
+        if ntable == 1 and left_col in right_result.columns:
+            #simple filter because column already in right_table
+            return(eval("right_result["+left_col+binop+right+"]"))
+        elif ntable == 2 and left_col in right_result.columns:
+            #merge and filter
+            #left_col already in right_result
+            out = eval('right_result+.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
+            return eval("out["+left_col+binop+right+"]")
+            pass
+
 
 
 def eval_cond(condition):
     result = []
-    left,binop,right = comparision_parse(conditions)
-    left_left, arithm_op, left_right, binop, right = arithm_parse(left,binop,right)
+    print(condition)
+    left,binop,right = comparision_parse(condition)
+    left_left, arithm_op, left_right, binop, right = arithm_parse_eval(left,binop,right)
     ntable, left_table, right_table, left_col, right_col = check_num_table(left_left, right)
+    left_table = left_table.strip()
+    left_col = left_col.strip()
+    if right_table != None:
+        right_col = right_col.strip()
+        right_table = right_table.strip()
+    print(left_col, right_table, right_col, arithm_op, binop)
     if ntable == 1:
         #we can evaluate the condition here itself and return
-        cond_str = create_cond_str(condition)
+        cond_str = left_table + create_cond_str(condition)
+        print(cond_str)
         return eval(cond_str)
     else:
         tmp = eval(left_table)
         #eval arithm operator and replace left table with tmp
         if arithm_op != None:
-            new_col = eval(left_table+"["+left_col"]"+arithm_op+left_left)
-            tmp.update(eval("pandas.DataFrame({'"left_col"': new_col})"))
+            new_col = eval(left_table+"["+left_col+"]"+arithm_op+left_left)
+            tmp.update(eval("pandas.DataFrame({'"+left_col+"': new_col})"))
         #join
         if binop == '=':
-            out = eval('tmp.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
+            out = eval('tmp.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'", how = "inner")')
             return out
         else:
-            out = eval('tmp.merge('+right_table+')')
-            return eval("out["left_col+binop+right"]")
+            out = eval(left_table+'.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
+            return eval("out["+left_col+binop+right+"]")
         pass
 
 
@@ -362,10 +381,10 @@ def arithm_parse_eval(left,op,right):
 def check_num_table(left, right):
     table_l = find_char_pos(left, '.')
     table_r = find_char_pos(right, '.')
-    if table_l != -1 and table_r != -1:
-        left_t = left[0:table_l]
+    left_t = left[0:table_l]
+    left_col = left[table_l + 1:]
+    if table_r != -1:
         right_t = right[0:table_r]
-        left_col = left[table_l + 1:]
         right_col = right[table_r + 1:]
         if left_t == right_t:
             return (1, left_t, None, left_col, None)
@@ -376,6 +395,10 @@ def check_num_table(left, right):
 
 
 def comparision_parse(item):
+    left = None
+    op = None
+    right = None
+    item = item[0]
     if (find_char_pos(item, '<') != -1 and find_char_pos(item, '=') != -1):
             left, op, right = (item[0:find_char_pos(item, '<')]),"<=",(item[find_char_pos(item, '=')+1:])
     elif (find_char_pos(item, '>') != -1 and find_char_pos(item, '=') != -1):
@@ -388,7 +411,6 @@ def comparision_parse(item):
             side, left, op, right =  (item[0:find_char_pos(item, '>')]),">",(item[find_char_pos(item, '>')+1:])
     elif find_char_pos(item, '=') != -1:
             left, op, right =  (item[0:find_char_pos(item, '=')]),"=",(item[find_char_pos(item, '=')+1:])
-
     return (left, op, right)
 
 def find_char_pos(string, char):
