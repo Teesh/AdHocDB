@@ -98,12 +98,12 @@ def query_plan(table_list, where_condition, select_columns, where_columns):
             input('if clause')
             cols = "["
             cols_list = []
-            if table[0] in select_columns:
-                for i in select_columns[table[0]]:
+            if rename in select_columns:
+                for i in select_columns[rename]:
                     cols = cols + "'" + i + "',"
                     cols_list.append(i)
-            if table[0] in where_columns:
-                for i in where_columns[table[0]]:
+            if rename in where_columns:
+                for i in where_columns[rename]:
                     if i not in cols_list:
                         cols = cols + "'" + i + "',"
                         cols_list.append(i)
