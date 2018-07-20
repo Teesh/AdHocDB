@@ -1,4 +1,5 @@
 import pandas
+import time
 
 PATH = "../Datasets/Movies/";
 #SELECT
@@ -8,12 +9,25 @@ tables = ["oscars", "movies"]
 #WHERE
 conds = ["oscars.Year >= '2014'","movies.movies_title + 100 = oscars.Film"]
 
-#oscars = pandas.read_csv("../Datasets/Movies/oscars.csv") 
-for table in tables:
-	globals()[table] = eval('pandas.read_csv("' + PATH + table + '.csv")')
+start = time.time()
+movies = pandas.read_csv("Datasets/Movies/movies.csv")
+oscars = pandas.read_csv("Datasets/Movies/oscars.csv")
+# movies = pandas.read_csv("Datasets/Movies/movies.csv", names=["movie_title", "title_year"])
+# oscars = pandas.read_csv("Datasets/Movies/oscars.csv", names=["Film", "Year"])
 
-for table in tables:
-	
+movies['tmp'] = 1
+oscars['tmp'] = 1
+
+pandas.merge(movies, oscars, on='tmp')
+
+print(time.time() -start)
+
+#
+# for table in tables:
+# 	globals()[table] = eval('pandas.read_csv("' + PATH + table + '.csv")["Year", "movies"]')
+#
+# for table in tables:
+
 
 '''
 table1 = 'movies'
