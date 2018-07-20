@@ -54,18 +54,22 @@ def parsing(query):
             where_ind = parsed.tokens.index(item)
 
     if (where_ind > 0):
-      	select_columns = get_select_names(parsed, select, from_ind)
-      	from_tables = get_table_names(parsed, from_ind, where_ind)
-      	where_condition = get_conditions(parsed, where_ind)
-        column = get_column(where_condition)
-        print(column)
+        select_columns = get_select_names(parsed, select, from_ind)
+        from_tables = get_table_names(parsed, from_ind, where_ind)
+        where_condition = get_conditions(parsed, where_ind)
+        where_columns = get_column(where_condition)
+        print(where_columns)
     else:
-      	select_columns = get_select_names(parsed, select, from_ind)
-      	from_tables = get_table_names(parsed, from_ind, len(parsed.tokens))
+        select_columns = get_select_names(parsed, select, from_ind)
+        from_tables = get_table_names(parsed, from_ind, len(parsed.tokens))
 
+
+    select_dict = select_col_dict(select_columns)
+    print(select_dict)
+    input()
     #figure out how exactly to do the computations
-    result = query_plan(from_tables, where_condition, select_columns)
-    print(projection(result, select_columns))
+    result = query_plan(from_tables, where_condition, select_dict, where_columns)
+    print(projection(result, select_dict))
 
     end = time.time()
     print("Time:", end-start)
@@ -74,17 +78,60 @@ def projection(table, columns):
     '''
     get the final result table and a list of columns
     '''
+    cols = []
+    # for key, value in columns:
+
     return table[columns]
 
 
-def query_plan(table_list, where_condition, select_columns):
+def query_plan(table_list, where_condition, select_columns, where_columns):
     #get tables that are needed
     for table in table_list:
+        print(table)
+        input("88")
         #use pandas here to upload the tables into memory
         if(len(table) == 2):
-            globals()[table[1]] = eval('pandas.read_csv("' +path+ table[0] + '.csv", index_col=False)')
+            #renaming
+            t = table[0] #actual file name
+            rename = table[1]
+            #lookup from select and where columns
+            input('if clause')
+            cols = "["
+            cols_list = []
+            if table[0] in select_columns:
+                for i in select_columns[table[0]]:
+                    cols = cols + "'" + i + "',"
+                    cols_list.append(i)
+            if table[0] in where_columns:
+                for i in where_columns[table[0]]:
+                    if i not in cols_list:
+                        cols = cols + "'" + i + "',"
+                        cols_list.append(i)
+            cols = cols[0:-1] + ']'
+            print(cols)
+            print(cols_list)
+            input('cols')
+            globals()[rename] = eval('pandas.read_csv("' +path+ t + '.csv", names='+cols+')')
+
         else:
-            globals()[table[0]] = eval('pandas.read_csv("' +path+ table[0] + '.csv", index_col=False)')
+            input('inelse')
+            cols = "["
+            cols_list = []
+            if table[0] in select_columns:
+                for i in select_columns[table[0]]:
+                    cols = cols + "'" + i + "',"
+                    cols_list.append(i)
+            if table[0] in where_columns:
+                for i in where_columns[table[0]]:
+                    if i not in cols_list:
+                        cols = cols + "'" + i + "',"
+                        cols_list.append(i)
+            cols = cols[0:-1] + ']'
+            print(cols_list)
+            print('pandas.read_csv("' +path+ table[0] + '.csv", names='+cols+')')
+            input('cols')
+            #no renaming
+            globals()[table[0]] = eval('pandas.read_csv("' +path+ table[0] + '.csv", names='+cols+')')
 
 
     if len(table_list) == 1:
@@ -92,6 +139,7 @@ def query_plan(table_list, where_condition, select_columns):
             cond_str = table_list[0][0] + create_cond_str(where_condition)
         else:
             cond_str = table_list[0][1] + create_cond_str(where_condition)
+        print(cond_str)
         return eval(cond_str)
 
     else:
@@ -272,14 +320,25 @@ def create_cond_str(where_condition):
 
 
 def get_select_names(parsed,start,stop):
-    print("in select names")
     token_stream = parsed.tokens[start:stop]
-    print(token_stream)
     for item in token_stream:
         if isinstance(item, IdentifierList) or isinstance(item, Identifier):
             x = item.value.split(',')
             y = [t.strip() for t in x]
             return y
+
+def select_col_dict(inputtables):
+    dictionary = defaultdict(set)
+    for item in inputtables:
+        dot = find_char_pos(item, '.')
+        if dot != -1:
+            t = item[0:dot]
+            c = item[dot+1:]
+            if t in dictionary:
+                dictionary[t].add(c)
+            else:
+                dictionary[t].add(c)
+    return dictionary
 
 def get_table_names(parsed, start, stop):
     '''
@@ -413,6 +472,8 @@ def comparision_parse(item):
     op = None
     right = None
     item = item[0]
+    print('417')
+    print(item)
     if (find_char_pos(item, '<') != -1 and find_char_pos(item, '=') != -1):
             left, op, right = (item[0:find_char_pos(item, '<')]),"<=",(item[find_char_pos(item, '=')+1:])
     elif (find_char_pos(item, '>') != -1 and find_char_pos(item, '=') != -1):
@@ -422,7 +483,7 @@ def comparision_parse(item):
     elif find_char_pos(item, '<') != -1:
             left, op, right =  (item[0:find_char_pos(item, '<')]),"<",(item[find_char_pos(item, '<')+1:])
     elif find_char_pos(item, '>') != -1:
-            side, left, op, right =  (item[0:find_char_pos(item, '>')]),">",(item[find_char_pos(item, '>')+1:])
+            left, op, right =  (item[0:find_char_pos(item, '>')]),">",(item[find_char_pos(item, '>')+1:])
     elif find_char_pos(item, '=') != -1:
             left, op, right =  (item[0:find_char_pos(item, '=')]),"==",(item[find_char_pos(item, '=')+1:])
     return (left, op, right)
@@ -432,20 +493,26 @@ def find_char_pos(string, char):
         return string.find(char)
     else:
         return -1
-    
+
 def get_column_helper(item):
     if find_char_pos(item, '.') != -1:
         return(item[0:find_char_pos(item, '.')],item[find_char_pos(item, '.')+1:])
-    return
+    return (None, None)
 
 def get_column(condition):
     column = []
+    print('444')
+    print(condition)
     dictionary = defaultdict(set)
     for item in condition:
         item = rm_white(item)
+        if item.lower() == 'and' or item.lower == 'or' or item.lower == 'not':
+            continue
         left,op,right = comparision_parse([item])
         if left is not None:
             key,text = get_column_helper(left)
+            if key == None:
+                continue
             if key in dictionary:
                 dictionary[key].add(text)
             else:
@@ -453,7 +520,10 @@ def get_column(condition):
 #            if text is not None:
 #                column.append(text)
         if right is not None:
+            print(right)
             key,text = get_column_helper(right)
+            if key == None:
+                continue
             if key in dictionary:
                 dictionary[key].add(text)
             else:
