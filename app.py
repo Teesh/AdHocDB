@@ -5,6 +5,7 @@ from sqlparse.sql import *
 from sqlparse.tokens import *
 import re
 import time
+from collections import defaultdict
 
 conds = ["movies.movie_title == 'King Kong'","movies.actor_1_facebook_likes < 20000","actor_2_facebook_likes > actor_1_facebook_likes","movies.title_year < 2010"]
 
@@ -56,6 +57,8 @@ def parsing(query):
       	select_columns = get_select_names(parsed, select, from_ind)
       	from_tables = get_table_names(parsed, from_ind, where_ind)
       	where_condition = get_conditions(parsed, where_ind)
+        column = get_column(where_condition)
+        print(column)
     else:
       	select_columns = get_select_names(parsed, select, from_ind)
       	from_tables = get_table_names(parsed, from_ind, len(parsed.tokens))
@@ -66,7 +69,6 @@ def parsing(query):
 
     end = time.time()
     print("Time:", end-start)
-
 
 def projection(table, columns):
     '''
@@ -430,6 +432,36 @@ def find_char_pos(string, char):
         return string.find(char)
     else:
         return -1
+    
+def get_column_helper(item):
+    if find_char_pos(item, '.') != -1:
+        return(item[0:find_char_pos(item, '.')],item[find_char_pos(item, '.')+1:])
+    return
 
+def get_column(condition):
+    column = []
+    dictionary = defaultdict(set)
+    for item in condition:
+        item = rm_white(item)
+        left,op,right = comparision_parse([item])
+        if left is not None:
+            key,text = get_column_helper(left)
+            if key in dictionary:
+                dictionary[key].add(text)
+            else:
+                dictionary[key].add(text)
+#            if text is not None:
+#                column.append(text)
+        if right is not None:
+            key,text = get_column_helper(right)
+            if key in dictionary:
+                dictionary[key].add(text)
+            else:
+                dictionary[key].add(text)
+#            if text is not None:
+#                column.append(text)
+    return dictionary
+def rm_white(string):
+    return string.replace(" ", "")
 if __name__ == "__main__":
     main()
