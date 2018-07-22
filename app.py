@@ -82,8 +82,13 @@ def projection(table, columns):
     cols = []
     for key in columns:
         for v in columns[key]:
-            cols.append(v)
+            table_plus_col = key + '.' + v
+            if v in table:
+                cols.append(v)
+            elif table_plus_col in table:
+                cols.append(table_plus_col)
     print("86")
+    print(table.columns)
     print(cols)
     input()
     return table[cols]
@@ -116,7 +121,7 @@ def query_plan(table_list, where_condition, select_columns, where_columns):
             print(cols)
             print(cols_list)
             input('cols')
-            globals()[rename] = eval('pandas.read_csv("' +path+ t + '.csv", names='+cols+')')
+            globals()[rename] = eval('pandas.read_csv("' +path+ t + '.csv")['+cols+']')
 
         else:
             input('inelse')
@@ -136,7 +141,9 @@ def query_plan(table_list, where_condition, select_columns, where_columns):
             print('pandas.read_csv("' +path+ table[0] + '.csv", names='+cols+')')
             input('cols')
             #no renaming
-            globals()[table[0]] = eval('pandas.read_csv("' +path+ table[0] + '.csv", names='+cols+')')
+            globals()[table[0]] = eval('pandas.read_csv("' +path+ table[0] + '.csv")['+cols+']')
+            print(eval(table[0]+".columns"))
+            input('done')
 
 
     if len(table_list) == 1:
@@ -149,7 +156,9 @@ def query_plan(table_list, where_condition, select_columns, where_columns):
             t = table_list[0][1]
             cond_str = table_list[0][1] + create_cond_str(where_condition)
         print(cond_str)
-        print (eval(t + ".columns"))
+        print('152')
+        print(eval(cond_str))
+        input('156')
         return eval(cond_str)
 
     else:
@@ -158,21 +167,27 @@ def query_plan(table_list, where_condition, select_columns, where_columns):
 
 def eval_or(conditions, columns):
     cond_lower = [c.lower() for c in conditions]
+    print(columns)
+    input("cols eval or")
     if 'or' in cond_lower:
         a = cond_lower.index('or')
         left = conditions[0:a]
         right = conditions[a+1:]
         left_eval = eval_and(left)
-        right_eval = eval_or(right)
-        return combine_or(left, right, columns)
+        print(left_eval.shape)
+        right_eval = eval_or(right, columns)
+        print(right_eval.shape)
+        return combine_or(left_eval, right_eval, columns)
     else:
         return eval_and(conditions)
 
 
 
 def combine_or(table1, table2, columns):
+    print(table1.shape, table2.shape)
+    input('shape')
     result = table1.append(table2)
-    return result[columns]
+    return result
 
 
 def eval_and(conditions):
