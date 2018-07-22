@@ -66,7 +66,7 @@ def parsing(query):
 
     select_dict = select_col_dict(select_columns)
     print(select_dict)
-    input()
+    input('69')
     #figure out how exactly to do the computations
     result = query_plan(from_tables, where_condition, select_dict, where_columns)
     print(projection(result, select_dict))
@@ -78,10 +78,15 @@ def projection(table, columns):
     '''
     get the final result table and a list of columns
     '''
+    print(columns)
     cols = []
-    # for key, value in columns:
-
-    return table[columns]
+    for key in columns:
+        for v in columns[key]:
+            cols.append(v)
+    print("86")
+    print(cols)
+    input()
+    return table[cols]
 
 
 def query_plan(table_list, where_condition, select_columns, where_columns):
@@ -136,10 +141,15 @@ def query_plan(table_list, where_condition, select_columns, where_columns):
 
     if len(table_list) == 1:
         if(len(table_list[0]) == 1):
+            #no rename
+            t = table_list[0][0]
             cond_str = table_list[0][0] + create_cond_str(where_condition)
         else:
+            #rename
+            t = table_list[0][1]
             cond_str = table_list[0][1] + create_cond_str(where_condition)
         print(cond_str)
+        print (eval(t + ".columns"))
         return eval(cond_str)
 
     else:
@@ -328,6 +338,8 @@ def get_select_names(parsed,start,stop):
             return y
 
 def select_col_dict(inputtables):
+    print(inputtables)
+    print('342')
     dictionary = defaultdict(set)
     for item in inputtables:
         dot = find_char_pos(item, '.')
@@ -338,6 +350,8 @@ def select_col_dict(inputtables):
                 dictionary[t].add(c)
             else:
                 dictionary[t].add(c)
+    print(dictionary)
+    input('352')
     return dictionary
 
 def get_table_names(parsed, start, stop):
