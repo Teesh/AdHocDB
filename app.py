@@ -58,54 +58,46 @@ def parsing(query):
         from_tables = get_table_names(parsed, from_ind, where_ind)
         where_condition = get_conditions(parsed, where_ind)
         where_columns = get_column(where_condition)
-        print(where_columns)
     else:
         select_columns = get_select_names(parsed, select, from_ind)
         from_tables = get_table_names(parsed, from_ind, len(parsed.tokens))
 
 
     select_dict = select_col_dict(select_columns)
-    print(select_dict)
-    input('69')
     #figure out how exactly to do the computations
     result = query_plan(from_tables, where_condition, select_dict, where_columns)
-    print(projection(result, select_dict))
+    final = projection(result, select_dict)
 
     end = time.time()
     print("Time:", end-start)
+    print(final)
+
+
 
 def projection(table, columns):
     '''
     get the final result table and a list of columns
     '''
-    print(columns)
     cols = []
     for key in columns:
         for v in columns[key]:
-            table_plus_col = key + '.' + v
+            table_plus_col = v+"__"+key
             if v in table:
                 cols.append(v)
             elif table_plus_col in table:
                 cols.append(table_plus_col)
-    print("86")
-    print(table.columns)
-    print(cols)
-    input()
     return table[cols]
 
 
 def query_plan(table_list, where_condition, select_columns, where_columns):
     #get tables that are needed
     for table in table_list:
-        print(table)
-        input("88")
         #use pandas here to upload the tables into memory
         if(len(table) == 2):
             #renaming
             t = table[0] #actual file name
             rename = table[1]
             #lookup from select and where columns
-            input('if clause')
             cols = "["
             cols_list = []
             if rename in select_columns:
@@ -118,65 +110,38 @@ def query_plan(table_list, where_condition, select_columns, where_columns):
                         cols = cols + "'" + i + "',"
                         cols_list.append(i)
             cols = cols[0:-1] + ']'
-            print(cols)
-            print(cols_list)
-            input('cols')
             globals()[rename] = eval('pandas.read_csv("' +path+ t + '.csv")['+cols+']')
+            eval(rename+".rename(columns=lambda x: x+'__"+rename+"', inplace=True)")
 
         else:
-            input('inelse')
             cols = "["
             cols_list = []
-            if table[0] in select_columns:
-                for i in select_columns[table[0]]:
+            t = table[0]
+            if t in select_columns:
+                for i in select_columns[t]:
                     cols = cols + "'" + i + "',"
                     cols_list.append(i)
-            if table[0] in where_columns:
-                for i in where_columns[table[0]]:
+            if t in where_columns:
+                for i in where_columns[t]:
                     if i not in cols_list:
                         cols = cols + "'" + i + "',"
                         cols_list.append(i)
             cols = cols[0:-1] + ']'
-            print(cols_list)
-            print('pandas.read_csv("' +path+ table[0] + '.csv", names='+cols+')')
-            input('cols')
             #no renaming
-            globals()[table[0]] = eval('pandas.read_csv("' +path+ table[0] + '.csv")['+cols+']')
-            print(eval(table[0]+".columns"))
-            input('done')
+            globals()[t] = eval('pandas.read_csv("' +path+ t + '.csv")['+cols+']')
+            eval(t+".rename(columns=lambda x: x+'__"+t+"', inplace=True)")
 
-
-    if len(table_list) == 1:
-        if(len(table_list[0]) == 1):
-            #no rename
-            t = table_list[0][0]
-            cond_str = table_list[0][0] + create_cond_str(where_condition)
-        else:
-            #rename
-            t = table_list[0][1]
-            cond_str = table_list[0][1] + create_cond_str(where_condition)
-        print(cond_str)
-        print('152')
-        print(eval(cond_str))
-        input('156')
-        return eval(cond_str)
-
-    else:
-        return eval_or(where_condition, select_columns)
+    return eval_or(where_condition, select_columns)
 
 
 def eval_or(conditions, columns):
     cond_lower = [c.lower() for c in conditions]
-    print(columns)
-    input("cols eval or")
     if 'or' in cond_lower:
         a = cond_lower.index('or')
         left = conditions[0:a]
         right = conditions[a+1:]
         left_eval = eval_and(left)
-        print(left_eval.shape)
         right_eval = eval_or(right, columns)
-        print(right_eval.shape)
         return combine_or(left_eval, right_eval, columns)
     else:
         return eval_and(conditions)
@@ -184,8 +149,6 @@ def eval_or(conditions, columns):
 
 
 def combine_or(table1, table2, columns):
-    print(table1.shape, table2.shape)
-    input('shape')
     result = table1.append(table2)
     return result
 
@@ -222,8 +185,6 @@ def combine_and(left_cond, right_result):
     left,binop,right = comparision_parse(left_cond)
     left_left, arithm_op, left_right, binop, right = arithm_parse_eval(left,binop,right)
     ntable, left_table, right_table, left_col, right_col = check_num_table(left_left, right)
-    print(right_result.columns)
-    print(left_col, right_col)
 
     if left_col not in right_result.columns:
         #completely disjoint
@@ -232,22 +193,21 @@ def combine_and(left_cond, right_result):
         #cross join with right
         left_result['tmp'] = 1
         right_result['tmp'] = 1
+
         out = pandas.merge(left_result, right_result, on='tmp')
         return eval("out.query('"+left_col + binop + right_col+"')")
     else:
         #left table should have been part of computations in right subtree
         if arithm_op != None:
-            new_col = eval(right_result+"["+left_col+"]"+arithm_op+left_left)
+            new_col = eval(right_result+"["+left_col +"]"+arithm_op+left_left)
             right_result.update(eval("pandas.DataFrame({'"+left_col+"': new_col})"))
         #join using tmp and col with table from right subtree and right col
         if ntable == 1 and left_col in right_result.columns:
             #simple filter because column already in right_table
             if right_col is None:
-                print("right_result.query('"+left_col + binop + right+"')")
-                return eval("right_result.query('"+left_col + binop + right+"')")
+                return eval('right_result.query("'+left_col + binop + right+'")')
             else:
                 return eval("right_result.query('"+left_col + binop + right_col+"')")
-            # return(eval("right_result["+left_col+binop+right+"]"))
         elif ntable == 2 and left_col in right_result.columns:
             #merge and filter
             #left_col already in right_result
@@ -255,24 +215,19 @@ def combine_and(left_cond, right_result):
             rt = eval(right_table)
             rt['tmp'] = 1
             out = pandas.merge(right_result, rt, on='tmp')
-            # print("out.query('"+left_col + binop + right_col+"')")
-            # out = eval('right_result+.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
             return eval("out.query('"+left_col + binop + right_col+"')")
-            # return eval("out['"+left_col+"'"+binop+"'"+right_col+"']")
             pass
 
 
 
 def eval_cond(condition):
     result = []
-    print(condition)
     left,binop,right = comparision_parse(condition)
     left_left, arithm_op, left_right, binop, right = arithm_parse_eval(left,binop,right)
     ntable, left_table, right_table, left_col, right_col = check_num_table(left_left, right)
-    print(left_col, right_table, right_col, arithm_op, binop)
     if ntable == 1:
         #we can evaluate the condition here itself and return
-        return eval(left_table + ".query('"+left_col + binop + right+"')")
+        return eval(left_table + '.query("'+left_col + binop + right+ '")')
         # cond_str = left_table + create_cond_str(condition)
         # print(cond_str)
         # return eval(cond_str)
@@ -325,7 +280,6 @@ def rename_columns(table):
     globals()[table] = eval(table + ".rename(columns=newcol)")
 
 def create_cond_str(where_condition):
-    print(where_condition)
     cond_str = "["
     for w in where_condition:
         if w.upper() == "AND":
@@ -340,7 +294,6 @@ def create_cond_str(where_condition):
                 w = w[0:ise] + "==" + w[ise+1:]
             cond_str = cond_str + 'eval("' + w + '")'
     cond_str = cond_str + ']'
-    print(cond_str)
     return cond_str
 
 
@@ -353,8 +306,6 @@ def get_select_names(parsed,start,stop):
             return y
 
 def select_col_dict(inputtables):
-    print(inputtables)
-    print('342')
     dictionary = defaultdict(set)
     for item in inputtables:
         dot = find_char_pos(item, '.')
@@ -365,8 +316,6 @@ def select_col_dict(inputtables):
                 dictionary[t].add(c)
             else:
                 dictionary[t].add(c)
-    print(dictionary)
-    input('352')
     return dictionary
 
 def get_table_names(parsed, start, stop):
@@ -381,7 +330,6 @@ def get_table_names(parsed, start, stop):
     Returns: [["table1", "t1"],["table2", "t2"]...]
     '''
     token_stream = parsed.tokens[start:stop]
-    print(token_stream)
     for item in token_stream:
         if isinstance(item, IdentifierList) or isinstance(item, Identifier):
             tables = item.value.split(',')
@@ -399,7 +347,6 @@ def get_conditions(parsed, start):
   '''
   token_stream = parsed.tokens[start:]
   parsed_where = next(token for token in token_stream if isinstance(token, Where))[1:]
-  print(parsed_where)
   # print(parsed_where[1].value)
   conditions = []
   for token in parsed_where:
@@ -482,12 +429,12 @@ def check_num_table(left, right):
     left_t = left[0:table_l]
     left_col = left[table_l + 1:]
     left_t = left_t.strip()
-    left_col = left_col.strip()
+    left_col = left_col.strip() + "__" + left_t
     if table_r != -1:
         right_t = right[0:table_r]
         right_col = right[table_r + 1:]
-        right_col = right_col.strip()
         right_t = right_t.strip()
+        right_col = right_col.strip() + "__" + right_t
         if left_t == right_t:
             return (1, left_t, right_t, left_col, right_col)
         else:
@@ -501,8 +448,6 @@ def comparision_parse(item):
     op = None
     right = None
     item = item[0]
-    print('417')
-    print(item)
     if (find_char_pos(item, '<') != -1 and find_char_pos(item, '=') != -1):
             left, op, right = (item[0:find_char_pos(item, '<')]),"<=",(item[find_char_pos(item, '=')+1:])
     elif (find_char_pos(item, '>') != -1 and find_char_pos(item, '=') != -1):
@@ -530,8 +475,6 @@ def get_column_helper(item):
 
 def get_column(condition):
     column = []
-    print('444')
-    print(condition)
     dictionary = defaultdict(set)
     for item in condition:
         item = rm_white(item)
@@ -549,7 +492,6 @@ def get_column(condition):
 #            if text is not None:
 #                column.append(text)
         if right is not None:
-            print(right)
             key,text = get_column_helper(right)
             if key == None:
                 continue
