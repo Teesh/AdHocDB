@@ -10,8 +10,8 @@ from collections import defaultdict
 import helper_func
 
 def query_plan(table_list, where_condition, select_columns, where_columns):
-    
-    path = "/Datasets/Movies/"
+
+    path = "./Datasets/Movies/"
     #get tables that are needed
     for table in table_list:
         #use pandas here to upload the tables into memory
@@ -55,5 +55,3 @@ def query_plan(table_list, where_condition, select_columns, where_columns):
             eval(t+".rename(columns=lambda x: x+'__"+t+"', inplace=True)")
 
     return eval_or(where_condition, select_columns)
-
-

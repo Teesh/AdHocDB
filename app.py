@@ -16,7 +16,7 @@ import parse
 
 #print(movies[eval(conds[1]) & eval(conds[3])])
 
-path = "Datasets/Movies/"
+path = "./Datasets/Movies/"
 
 def main():
     parser = argparse.ArgumentParser(description='Preprocessing files and running queries.')
