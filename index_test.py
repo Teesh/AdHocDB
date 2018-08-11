@@ -10,6 +10,7 @@ stars_group = stars.groupby(level='stars')
 stars.query('index == "1"')
 
 # CITY/COUNTRY INDEX
+# make two separate index
 data = pd.read_csv('business.csv')
 city_state = data[['city', 'country', 'business_id']]
 city_state = city_state.set_index(['city', 'state'])
@@ -18,6 +19,7 @@ city_state = city_state.reindex()
 city_state.loc[('Phoenix', 'AZ')]
 
 # NAME/POSTAL CODE INDEX
+# make two separate index
 data = pd.read_csv('business.csv')
 name_zipcode = data[['name', 'postal_code', 'business_id']]
 name_zipcode = name_zipcode.set_index(['name','postal_code'])
