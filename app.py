@@ -112,6 +112,7 @@ def query_plan(table_list, where_condition, select_columns, where_columns):
             cols = cols[0:-1] + ']'
             globals()[rename] = eval('pandas.read_csv("' +path+ t + '.csv")['+cols+']')
             eval(rename+".rename(columns=lambda x: x+'__"+rename+"', inplace=True)")
+            #read index files on columns
 
         else:
             cols = "["
@@ -130,6 +131,7 @@ def query_plan(table_list, where_condition, select_columns, where_columns):
             #no renaming
             globals()[t] = eval('pandas.read_csv("' +path+ t + '.csv")['+cols+']')
             eval(t+".rename(columns=lambda x: x+'__"+t+"', inplace=True)")
+            # get index files on columns
 
     return eval_or(where_condition, select_columns)
 
@@ -181,6 +183,46 @@ def eval_not(condition):
         return condition
 
 
+def index_join(indl, indr):
+
+
+def naive_join(l_table, r_table):
+    pass
+
+def index_search(col, value, binop):
+    ids = []
+    if 'stars' in col:
+        #working with stars index
+        #todo: ids = getIDs_stars(value)
+        pass
+    if 'city' in col:
+        #todo: ids = getIDs_city(value)
+        pass
+    if 'state' in col:
+        #todo: ids = getIDs_state(value)
+        pass
+    if 'name' in col:
+        #todo: ids = getIDs_name(value)
+        pass
+    if 'postal_code' in col:
+        #todo: ids = getIDs_postal(value)
+        pass
+    if 'label' in col:
+        #todo: ids = getIDs_label(value)
+        pass
+    if 'funny' in col:
+        #todo: ids = getIDs_funny(value, binop)
+        pass
+    if 'useful' in col:
+        #todo: ids = getIDs_useful(value, binop)
+        pass
+    return ids
+
+def get_rows_from_ids(ids, table, col):
+    return eval("table.loc[table['"+col+"'].isin("+ids+")")
+    #df.loc[df['B'].isin(['one', 'three'])]
+
+
 def combine_and(left_cond, right_result):
     left,binop,right = comparision_parse(left_cond)
     left_left, arithm_op, left_right, binop, right = arithm_parse_eval(left,binop,right)
@@ -190,7 +232,9 @@ def combine_and(left_cond, right_result):
         #completely disjoint
         #evaluate left
         left_result = eval_cond(left_cond)
+
         #cross join with right
+        #todo: use naive join method
         left_result['tmp'] = 1
         right_result['tmp'] = 1
 
@@ -204,6 +248,7 @@ def combine_and(left_cond, right_result):
         #join using tmp and col with table from right subtree and right col
         if ntable == 1 and left_col in right_result.columns:
             #simple filter because column already in right_table
+            #todo: change to index search
             if right_col is None:
                 return eval('right_result.query("'+left_col + binop + right+'")')
             else:
@@ -214,6 +259,7 @@ def combine_and(left_cond, right_result):
             right_result['tmp'] = 1
             rt = eval(right_table)
             rt['tmp'] = 1
+            #todo: change to naive join
             out = pandas.merge(right_result, rt, on='tmp')
             return eval("out.query('"+left_col + binop + right_col+"')")
             pass
@@ -228,9 +274,7 @@ def eval_cond(condition):
     if ntable == 1:
         #we can evaluate the condition here itself and return
         return eval(left_table + '.query("'+left_col + binop + right+ '")')
-        # cond_str = left_table + create_cond_str(condition)
-        # print(cond_str)
-        # return eval(cond_str)
+        #todo: change this to an index search
     else:
         tmp = eval(left_table)
         #eval arithm operator and replace left table with tmp
@@ -246,6 +290,7 @@ def eval_cond(condition):
             # tmpr = eval(right_table + "['tmp'] = 1")
             tmpr = eval(right_table)
             tmpr['tmp'] = 1
+            #todo: naive join
             out = pandas.merge(tmp, tmpr, on='tmp')
             # out = eval(left_table+'.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
             return eval("out.query('"+left_col + binop + right_col+"')")
