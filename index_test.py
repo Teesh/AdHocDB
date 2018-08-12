@@ -15,14 +15,42 @@ def getIDs_stars(val):
     stars_index = stars.query(input)
     return stars_index.values
 
-# CITY/COUNTRY INDEX
-# make two separate index
-data = pd.read_csv('business.csv')
-city_state = data[['city', 'country', 'business_id']]
-city_state = city_state.set_index(['city', 'state'])
-city_state = city_state.sort_index()
-city_state = city_state.reindex()
-city_state.loc[('Phoenix', 'AZ')]
+# CITY INDEX
+# creates an index of business_id's by city in ascending order (#->Z)
+def setIndex_city():
+    global city
+    city = pd.read_csv('business.csv')
+    city = city[['city', 'business_id']]
+    city = city.set_index(['city'])
+    city = city.sort_index()
+    city = city.reindex()
+    # print(city.head())
+    # city_state.loc[('Phoenix')]
+
+# returns an arraylist of business_id's in city NAME
+# make sure to input NAME using "" ie. getIDs_city("Champaign")
+def getIDs_city(name):
+    city_index = city.loc[name]
+    # print(city_index.head())
+    return city_index.values
+
+# STATE INDEX
+# creates an index of business_id's by state in ascending order (01->ZET)
+def setIndex_state():
+    global state
+    state = pd.read_csv('business.csv')
+    state = state[['state', 'business_id']]
+    state = state.set_index(['state'])
+    state = state.sort_index()
+    # state = state.reindex()
+    # print(state.index())
+
+# returns an arraylist of business_id's in state NAME
+# make sure to input NAME using "" ie. getIDs_state("IL")
+def getIDs_state(name):
+    input = str(name)
+    state_index = state.loc[name]
+    return state_index.values
 
 # NAME/POSTAL CODE INDEX
 # make two separate index
