@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 # STARS INDEX
 # creates an index of business_id's by star ratings in ascending order (1->5)
