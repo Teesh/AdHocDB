@@ -1,13 +1,19 @@
 import pandas as pd
 
 # STARS INDEX
-data = pd.read_csv('review-1m.csv')
-stars = data[['stars', 'business_id']]
-stars = stars.set_index('stars')
-stars = stars.sort_index(inplace=True)
-stars.index.set_names("stars")
-stars_group = stars.groupby(level='stars')
-stars.query('index == "1"')
+# creates an index of business_id's by star ratings in ascending order (1->5)
+def setIndex_stars():
+    global stars
+    stars = pd.read_csv('review-1m.csv')
+    stars = stars[['stars', 'business_id']]
+    stars = stars.set_index('stars')
+    stars = stars.sort_index()
+
+# returns an arraylist of business_id's with stars rating of VAL
+def getIDs_stars(val):
+    input = "index == " + str(val)
+    stars_index = stars.query(input)
+    return stars_index.values
 
 # CITY/COUNTRY INDEX
 # make two separate index
