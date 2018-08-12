@@ -87,10 +87,6 @@ def projection(table, columns):
     return table[cols]
 
 
-def naive_join():
-    pass
-
-
 def bid_intersect(rbid, lbid):
     temp = set(lbid)
     lst3 = [value for value in rbid if value in temp]
@@ -156,14 +152,14 @@ def query_plan(table_list, where_condition, select_columns, where_columns):
                     if i not in cols_list:
                         cols = cols + "'" + i + "',"
                         cols_list.append(i)
-            if "business_id" not in cols:
-                cols = cols + "'business_id']"
-            else:
-                cols = cols[0:-1] + ']'
+            # if "business_id" not in cols:
+            #     cols = cols + "'business_id']"
+            # else:
+            cols = cols[0:-1] + ']'
             globals()[rename] = eval('pandas.read_csv("' +path+ t + '.csv")['+cols+']')
             eval(rename+".rename(columns=lambda x: x+'__"+rename+"', inplace=True)")
             #set business id as index
-            eval(rename+".set_index('business_id__"+rename+"')")
+            #eval(rename+".set_index('business_id__"+rename+"')")
             #df.set_index(['year', 'month'])
 
         else:
@@ -179,15 +175,15 @@ def query_plan(table_list, where_condition, select_columns, where_columns):
                     if i not in cols_list:
                         cols = cols + "'" + i + "',"
                         cols_list.append(i)
-            if "business_id" not in cols:
-                cols = cols + "'business_id']"
-            else:
-                cols = cols[0:-1] + ']'
+            # if "business_id" not in cols:
+            #     cols = cols + "'business_id']"
+            # else:
+            cols = cols[0:-1] + ']'
             #no renaming
             globals()[t] = eval('pandas.read_csv("' +path+ t + '.csv")['+cols+']')
             eval(t+".rename(columns=lambda x: x+'__"+t+"', inplace=True)")
             # set business id as index
-            eval(rename + ".set_index('business_id__" + rename + "')")
+            #eval(rename + ".set_index('business_id__" + rename + "')")
 
     #todo: read in preprocessed files
     return eval_or(where_condition, select_columns)
@@ -217,6 +213,17 @@ def eval_and(conditions):
         a = cond_lower.index('and')
         left = conditions[0:a]
         right = conditions[a+1:]
+
+        left, binop, left_right = comparision_parse(left)
+        ntable, left_table, right_table1, left_col, right_col = check_num_table(left, left_right)
+
+        if ntable == 1:
+            #filter and index joins and pass down ids, no need to combine
+            pass
+        elif ntable == 2:
+            #pass ids to combine
+            pass
+
         #continue down the right subtree, and get a resulting table
         right_table = eval_and(right)
         #if there is a not, then negate the condition
