@@ -1,31 +1,88 @@
 import pandas as pd
+import numpy as np
 
 # STARS INDEX
-data = pd.read_csv('review-1m.csv')
-stars = data[['stars', 'business_id']]
-stars = stars.set_index('stars')
-stars = stars.sort_index(inplace=True)
-stars.index.set_names("stars")
-stars_group = stars.groupby(level='stars')
-stars.query('index == "1"')
+# creates an index of business_id's by star ratings in ascending order (1->5)
+def setIndex_stars():
+    global stars
+    stars = pd.read_csv('review-1m.csv')
+    stars = stars[['stars', 'business_id']]
+    stars = stars.set_index('stars')
+    stars = stars.sort_index()
 
-# CITY/COUNTRY INDEX
-# make two separate index
-data = pd.read_csv('business.csv')
-city_state = data[['city', 'country', 'business_id']]
-city_state = city_state.set_index(['city', 'state'])
-city_state = city_state.sort_index()
-city_state = city_state.reindex()
-city_state.loc[('Phoenix', 'AZ')]
+# returns an arraylist of business_id's with stars rating of VAL
+def getIDs_stars(val):
+    input = "index == " + str(val)
+    stars_index = stars.query(input)
+    return stars_index.values
 
-# NAME/POSTAL CODE INDEX
-# make two separate index
-data = pd.read_csv('business.csv')
-name_zipcode = data[['name', 'postal_code', 'business_id']]
-name_zipcode = name_zipcode.set_index(['name','postal_code'])
-name_zipcode = name_zipcode.sort_index()
-name_zipcode = name_zipcode.reindex()
-name_zipcode.loc[('Sushi Ichiban', '61820')]
+# CITY INDEX
+# creates an index of business_id's by city in ascending order (#->Z)
+def setIndex_city():
+    global city
+    city = pd.read_csv('business.csv')
+    city = city[['city', 'business_id']]
+    city = city.set_index(['city'])
+    city = city.sort_index()
+    city = city.reindex()
+    # print(city.head())
+    # city_state.loc[('Phoenix')]
+
+# returns an arraylist of business_id's in exact city
+# make sure to INPUT using "" ie. getIDs_city("Champaign")
+def getIDs_city(input):
+    city_index = city.loc[input]
+    # print(city_index.head())
+    return city_index.values
+
+# STATE INDEX
+# creates an index of business_id's by state in ascending order (01->ZET)
+def setIndex_state():
+    global state
+    state = pd.read_csv('business.csv')
+    state = state[['state', 'business_id']]
+    state = state.set_index(['state'])
+    state = state.sort_index()
+    # state = state.reindex()
+    # print(state.index())
+
+# returns an arraylist of business_id's in exact state
+# make sure to INPUT using "" ie. getIDs_state("IL")
+def getIDs_state(input):
+    state_index = state.loc[input]
+    return state_index.values
+
+# NAME INDEX
+# creates an index of business_id's by business name in ascending order
+def setIndex_name():
+    global name
+    name = pd.read_csv('business.csv')
+    name = name[['name', 'business_id']]
+    name = name.set_index(['name'])
+    name = name.sort_index()
+    # print(name.head())
+
+# returns an arraylist of business_id's with exact business name in ascending order
+# make sure to INPUT using "" ie. getIDs_name("Sushi Ichiban")
+def getIDs_name(input):
+    name_index = name.loc[input]
+    return name_index.values
+
+# POSTAL INDEX
+# creates an index of business_id's by postal code in ascending order
+def setIndex_postal():
+    global postal
+    postal = pd.read_csv('business.csv')
+    postal = postal[['postal_code', 'business_id']]
+    postal = postal.set_index(['postal_code'])
+    postal = postal.sort_index()
+    # print(name.head())
+
+# returns an arraylist of business_id's in exact postal code
+# make sure to INPUT using "" ie. getIDs_postal("61820")
+def getIDs_postal(input):
+    postal_index = postal.loc[input]
+    return postal_index.values
 
 # PHOTOS INDEX
 # data = pd.read_csv('photos.csv', usecols=['label'], iterator=True, chunksize=50000)
