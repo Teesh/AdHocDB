@@ -211,7 +211,7 @@ def eval_or(conditions, columns):
         a = cond_lower.index('or')
         left = conditions[0:a]
         right = conditions[a+1:]
-        left_eval = eval_and(left)
+        left_eval = eval_and_testing(left)
         right_eval = eval_or(right, columns)
         return combine_or(left_eval, right_eval, columns)
     else:
@@ -219,7 +219,7 @@ def eval_or(conditions, columns):
 
 
 def eval_and_testing(conditions, prev_inds):
-    final_inds = []
+    final_table = None
     cond_lower = [c.lower() for c in conditions]
     if 'and' in cond_lower:
         a = cond_lower.index('and')
@@ -232,66 +232,142 @@ def eval_and_testing(conditions, prev_inds):
 
         if ntable == 1:
             # filter table immediately, get indexes
-            # todo: get inds
+            # get inds
             inds = []
             if right_col==None and is_index(left_col): #only value on right
                 inds = index_search(left_col, left_right, binop)
             else: #query table
-                inds = eval(leftt + '.query("' + left_col + binop + left_right + '")')
+                inds_table = eval(leftt + '.query("' + left_col + binop + left_right + '")')
+                c = ''
+                for col in inds_table.columns.values:
+                    if 'business_id' in col:
+                        c = col
+                inds = inds_table[c]
+            #join with prev_ind if any
+            if len(prev_inds) != 0:
+                inds = bid_intersect(prev_inds, inds)
             # continue down right subtree
-            final_inds = eval_and_testing(rightconds, inds)
+            final_table = eval_and_testing(rightconds, inds)
             # no combine
-            pass
         else:
             inds = []
             # ignore cond and continue down right subtree
             right_table = eval_and_testing(rightconds, inds)
             # evaluate cond
-            final_inds = combine_and_testing(right_table, cond, prev_inds)
-            pass
+            final_table = combine_and_testing(right_table, cond, prev_inds)
     else:
         # last condition, negate and then evaluate
         cond = eval_not(conditions)
-        final_inds = eval_cond_testing(cond, prev_inds)
+        final_table = eval_cond_testing(cond, prev_inds)
 
-    return final_inds
+    return final_table
 
 
-def combine_and_testing(right_table, cond, prev_inds):
-    pass
+def combine_and_testing(left_cond, right_result, prev_inds):
+    left,binop,right = comparision_parse(left_cond)
+    left_left, arithm_op, left_right, binop, right = arithm_parse_eval(left,binop,right)
+    ntable, left_table, right_table, left_col, right_col = check_num_table(left_left, right)
 
+    if ntable != 2:
+        print("ntable not 2, something is wrong")
+
+    c = ''
+    for col in right_table.columns.values:
+        if 'business_id' in col:
+            c = col
+
+    # get all the rows from the prev_inds
+    table = eval(right_table)
+    if len(prev_inds) != 0:
+        table = table.loc[table[c].isin(prev_inds)]
+
+    if left_col not in right_result.columns:
+        print("we shouldn't be going in here")
+        #completely disjoint
+        #evaluate left
+        left_result = eval_cond_testing(left_cond, prev_inds)
+        #cross join with right
+        left_result['tmp'] = 1
+        right_result['tmp'] = 1
+
+        out = pandas.merge(left_result, right_result, on='tmp')
+        return eval("out.query('"+left_col + binop + right_col+"')")
+    else:
+        #left table should have been part of computations in right subtree
+        if arithm_op != None:
+            new_col = eval(right_result+"["+left_col +"]"+arithm_op+left_left)
+            right_result.update(eval("pandas.DataFrame({'"+left_col+"': new_col})"))
+        #join using tmp and col with table from right subtree and right col
+        # ntable cannot be 1
+        # if ntable == 1 and left_col in right_result.columns:
+        #     #simple filter because column already in right_table
+        #     if right_col == None and is_index(left_col):  # only value on right
+        #         inds = index_search(left_col, left_right, binop)
+        #         inds_table = table.loc[table[c].isin(inds)]
+        #     elif right_col == None and not is_index(left_col):  # query table
+        #         inds_table = eval(table + '.query("' + left_col + binop + right + '")')
+        #     else:
+        #         return eval("right_result.query('"+left_col + binop + right_col+"')")
+        if left_col in right_result.columns:
+            #merge and filter
+            #left_col already in right_result
+            #here, we know that this will only come when we are looking at bid and only binop used is ==
+            if binop == '=' or binop == '==':
+                out = eval(
+                    'right_result.merge(' + table + ', left_on="' + left_col + '", right_on="' + right_col + '", how = "inner")')
+                return out
+            else:
+                return naive_join(right_result, table, binop, left_col, right_col)
+                # right_result['tmp'] = 1
+                # rt = eval(right_table)
+                # rt['tmp'] = 1
+                # out = pandas.merge(right_result, rt, on='tmp')
+                # return eval("out.query('"+left_col + binop + right_col+"')")
 
 def eval_cond_testing(condition, prev_inds):
-    result = []
     left, binop, right = comparision_parse(condition)
     left_left, arithm_op, left_right, binop, right = arithm_parse_eval(left, binop, right)
     ntable, left_table, right_table, left_col, right_col = check_num_table(left_left, right)
+
+    c = ''
+    for col in left_table.columns.values:
+        if 'business_id' in col:
+            c = col
+
+    # get all the rows from the prev_inds
+    table = eval(left_table)
+    if len(prev_inds) != 0:
+        table = table.loc[table[c].isin(prev_inds)]
+
     if ntable == 1:
+        # return eval(left_table + '.query("' + left_col + binop + right + '")')
+
         # we can evaluate the condition here itself and return
         # todo: ids = index_search(left_col, right, binop)
         # todo: get and return rows from index_search bids
-        return eval(left_table + '.query("' + left_col + binop + right + '")')
-        # cond_str = left_table + create_cond_str(condition)
-        # print(cond_str)
-        # return eval(cond_str)
+        if right_col == None and is_index(left_col):  # only value on right
+            inds = index_search(left_col, left_right, binop)
+            inds_table = table.loc[table[c].isin(inds)]
+        else:  # query table
+            inds_table = eval(table + '.query("' + left_col + binop + right + '")')
+        return inds_table
     else:
-        tmp = eval(left_table)
         # eval arithm operator and replace left table with tmp
         if arithm_op != None:
-            new_col = eval(left_table + "[" + left_col + "]" + arithm_op + left_left)
-            tmp.update(eval("pandas.DataFrame({'" + left_col + "': new_col})"))
+            new_col = eval("table[" + left_col + "]" + arithm_op + left_left)
+            table.update(eval("pandas.DataFrame({'" + left_col + "': new_col})"))
         # join
         if binop == '=' or binop == '==':
             print("merge")
             out = eval(
-                'tmp.merge(' + right_table + ', left_on="' + left_col + '", right_on="' + right_col + '", how = "inner")')
+                'table.merge(' + right_table + ', left_on="' + left_col + '", right_on="' + right_col + '", how = "inner")')
             return out
         else:
-            tmp['tmp'] = 1
+            table['tmp'] = 1
             # tmpr = eval(right_table + "['tmp'] = 1")
             tmpr = eval(right_table)
             tmpr['tmp'] = 1
-            out = pandas.merge(tmp, tmpr, on='tmp')
+            out = pandas.merge(table, tmpr, on='tmp')
             # out = eval(left_table+'.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
             return eval("out.query('" + left_col + binop + right_col + "')")
 
