@@ -593,13 +593,21 @@ def setIndex_stars():
 
     stars.to_csv('stars_index.csv', index=True)
 
+    stars_row = pd.read_csv('review-1m.csv')
+    stars_row = stars_row[['stars']]
+    stars_row.reset_index(level=0, inplace=True)
+    stars_row = stars_row.rename(columns={'index': 'row_num'})
+    stars_row = stars_row.set_index('stars')
+    stars_row = stars_row.sort_index()
+
+    stars_row.to_csv('stars_row.csv', index=True)
 
 # returns an arraylist of business_id's with stars rating of VAL
 def getIDs_stars(val):
     input = "index == " + str(val)
     stars_index = stars.query(input)
-    return stars_index.values
-
+    stars_row_index = stars_row.query(input)
+    return stars_index.values, stars_row_index.values
 
 # CITY INDEX
 # creates an index of business_id's by city in ascending order (#->Z)
@@ -615,14 +623,22 @@ def setIndex_city():
 
     city.to_csv('city_index.csv', index=True)
 
+    city_row = pd.read_csv('business.csv')
+    city_row = city_row[['city']]
+    city_row.reset_index(level=0, inplace=True)
+    city_row = city_row.rename(columns={'index': 'row_num'})
+    city_row = city_row.set_index('city')
+    city_row = city_row.sort_index()
+
+    city_row.to_csv('city_row.csv', index=True)
 
 # returns an arraylist of business_id's in exact city
 # make sure to INPUT using "" ie. getIDs_city("Champaign")
 def getIDs_city(input):
     city_index = city.loc[input]
+    city_row_index = city_row.loc[input]
     # print(city_index.head())
-    return city_index.values
-
+    return city_index.values, city_row_index.values
 
 # STATE INDEX
 # creates an index of business_id's by state in ascending order (01->ZET)
@@ -637,13 +653,21 @@ def setIndex_state():
 
     state.to_csv('state_index.csv', index=True)
 
+    state_row = pd.read_csv('business.csv')
+    state_row = state_row[['state']]
+    state_row.reset_index(level=0, inplace=True)
+    state_row = state_row.rename(columns={'index': 'row_num'})
+    state_row = state_row.set_index('state')
+    state_row = state_row.sort_index()
 
+    state_row.to_csv('state_row.csv', index=True)
+    
 # returns an arraylist of business_id's in exact state
 # make sure to INPUT using "" ie. getIDs_state("IL")
 def getIDs_state(input):
     state_index = state.loc[input]
-    return state_index.values
-
+    state_row_index = state_row.loc[input]
+    return state_index.values, state_row_index.values
 
 # NAME INDEX
 # creates an index of business_id's by business name in ascending order
@@ -657,13 +681,21 @@ def setIndex_name():
 
     name.to_csv('name_index.csv', index=True)
 
+    name_row = pd.read_csv('business.csv')
+    name_row = name_row[['name']]
+    name_row.reset_index(level=0, inplace=True)
+    name_row = name_row.rename(columns={'index': 'row_num'})
+    name_row = name_row.set_index('name')
+    name_row = name_row.sort_index()
+
+    name_row.to_csv('name_row.csv', index=True)
 
 # returns an arraylist of business_id's with exact business name in ascending order
 # make sure to INPUT using "" ie. getIDs_name("Sushi Ichiban")
 def getIDs_name(input):
     name_index = name.loc[input]
-    return name_index.values
-
+    name_row_index = name_row.loc[input]
+    return name_index.values, name_row_index.values
 
 # POSTAL INDEX
 # creates an index of business_id's by postal code in ascending order
@@ -677,13 +709,21 @@ def setIndex_postal():
 
     postal.to_csv('postal_index.csv', index=True)
 
+    postal_row = pd.read_csv('business.csv')
+    postal_row = postal_row[['postal_code']]
+    postal_row.reset_index(level=0, inplace=True)
+    postal_row = postal_row.rename(columns={'index': 'row_num'})
+    postal_row = postal_row.set_index('postal_code')
+    postal_row = postal_row.sort_index()
+
+    postal_row.to_csv('postal_row.csv', index=True)
 
 # returns an arraylist of business_id's in exact postal code
 # make sure to INPUT using "" ie. getIDs_postal("61820")
 def getIDs_postal(input):
     postal_index = postal.loc[input]
-    return postal_index.values
-
+    postal_row_index = postal_row.loc[input]
+    return postal_index.values, postal_row_index.values
 
 # sets all index and saves them to a '#NAME#_index.csv' file
 def setIndex_all():
@@ -694,16 +734,21 @@ def setIndex_all():
     setIndex_postal()
     print("All indexes have been saved to file!")
 
-
 # loads all '#NAME#_index.csv' file into global variables
 # this function must be called before calling any .getIDs functions
 def loadIndex_all():
-    global stars, city, state, name, postal
-    stars = pandas.read_csv('stars_index.csv', index_col=['stars'])
-    city = pandas.read_csv('city_index.csv', index_col=['city'])
-    state = pandas.read_csv('state_index.csv', index_col=['state'])
-    name = pandas.read_csv('name_index.csv', index_col=['name'])
-    postal = pandas.read_csv('postal_index.csv', index_col=['postal_code'])
+    global stars, city, state, name, postal, stars_row, city_row, state_row, name_row, postal_row
+    stars = pd.read_csv('stars_index.csv', index_col=['stars'])
+    stars_row = pd.read_csv('stars_row.csv', index_col=['stars'])
+    city = pd.read_csv('city_index.csv', index_col=['city'])
+    city_row = pd.read_csv('city_row.csv', index_col=['city'])
+    state = pd.read_csv('state_index.csv', index_col=['state'])
+    state_row = pd.read_csv('state_row.csv', index_col=['state'])
+    name = pd.read_csv('name_index.csv', index_col=['name'])
+    name_row = pd.read_csv('name_row.csv', index_col=['name'])
+    postal = pd.read_csv('postal_index.csv', index_col=['postal_code'])
+    postal_row = pd.read_csv('postal_row.csv', index_col=['postal_code'])
+    print("All indexes have been loaded!")
 
 
 if __name__ == "__main__":
