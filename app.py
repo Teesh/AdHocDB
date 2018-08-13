@@ -15,7 +15,7 @@ conds = ["movies.movie_title == 'King Kong'","movies.actor_1_facebook_likes < 20
 
 #print(movies[eval(conds[1]) & eval(conds[3])])
 
-path = "Datasets/Yelp/"
+path = "../Datasets/Yelp/"
 
 
 def main():
