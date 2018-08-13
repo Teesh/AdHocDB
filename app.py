@@ -6,6 +6,8 @@ from sqlparse.tokens import *
 import re
 import time
 from collections import defaultdict
+import numpy
+import math
 
 conds = ["movies.movie_title == 'King Kong'","movies.actor_1_facebook_likes < 20000","actor_2_facebook_likes > actor_1_facebook_likes","movies.title_year < 2010"]
 
@@ -13,7 +15,7 @@ conds = ["movies.movie_title == 'King Kong'","movies.actor_1_facebook_likes < 20
 
 #print(movies[eval(conds[1]) & eval(conds[3])])
 
-path = "Datasets/Yelp/"
+path = "Datasets/Movies/"
 
 
 def main():
@@ -99,18 +101,18 @@ def bid_union(rbid, lbid):
 
 
 def naive_join(table1, table2, binop, col1, col2):
-    columns = table1.columns.values
-    columns = columns.append(table2.columns.values)
+    columns1 = table1.columns.values
+    columns2 = table2.columns.values
+    columns = numpy.append(columns1, columns2)
     new_df = pandas.DataFrame(columns=columns)
     for i1, row1 in table1.iterrows():
-        v1 = getattr(row1, col1)
-        row1['tmp'] = 1
+        v1 = row1[col1]
         for i2, row2 in table2.iterrows():
             v2 = row2[col2]
-            row2['tmp'] = 1
-            if eval(v1 + binop + v2):
-                new_row = pandas.merge(row1, row2, on='tmp').drop(columns=['tmp'])
-                new_df.append(new_row)
+            if (not math.isnan(v1)) and (not math.isnan(v2)) and eval(str(v1) + binop + str(v2)):
+                row = row1.append(row2)
+                row = row.to_frame()
+                new_df.append(row)
     return new_df
 
 
@@ -251,79 +253,6 @@ def eval_and(conditions):
         return eval_cond(cond)
 
 
-def eval_and_testing(conditions, prev_inds):
-    final_inds = []
-    cond_lower = [c.lower() for c in conditions]
-    if 'and' in cond_lower:
-        a = cond_lower.index('and')
-        cond = conditions[0:a]
-        rightconds = conditions[a + 1:]
-
-        cond = eval_not(cond) #negate cond
-        left_left, binop, left_right = comparision_parse(cond)
-        ntable, leftt, rightt, left_col, right_col = check_num_table(left_left, left_right)
-
-        if ntable == 1:
-            #filter table immediately, get indexes
-            #todo: get inds
-            inds = []
-            # continue down right subtree
-            final_inds =  eval_and_testing(rightconds, inds)
-            # no combine
-            pass
-        else:
-            inds = []
-            #ignore cond and continue down right subtree
-            right_table = eval_and_testing(rightconds, inds)
-            #evaluate cond
-            final_inds = combine_and_testing(right_table, cond, prev_inds)
-            pass
-    else:
-        #last condition, negate and then evaluate
-        cond = eval_not(conditions)
-        final_inds = eval_cond_testing(cond, prev_inds)
-        
-    return final_inds
-
-
-def combine_and_testing(right_table, cond, prev_inds):
-    pass
-
-
-def eval_cond_testing(condition, prev_inds):
-    result = []
-    left,binop,right = comparision_parse(condition)
-    left_left, arithm_op, left_right, binop, right = arithm_parse_eval(left,binop,right)
-    ntable, left_table, right_table, left_col, right_col = check_num_table(left_left, right)
-    if ntable == 1:
-        #we can evaluate the condition here itself and return
-        #todo: ids = index_search(left_col, right, binop)
-        #todo: get and return rows from index_search bids
-        return eval(left_table + '.query("'+left_col + binop + right+ '")')
-        # cond_str = left_table + create_cond_str(condition)
-        # print(cond_str)
-        # return eval(cond_str)
-    else:
-        tmp = eval(left_table)
-        #eval arithm operator and replace left table with tmp
-        if arithm_op != None:
-            new_col = eval(left_table+"["+left_col+"]"+arithm_op+left_left)
-            tmp.update(eval("pandas.DataFrame({'"+left_col+"': new_col})"))
-        #join
-        if binop == '=' or binop == '==':
-            print("merge")
-            out = eval('tmp.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'", how = "inner")')
-            return out
-        else:
-            tmp['tmp'] = 1
-            # tmpr = eval(right_table + "['tmp'] = 1")
-            tmpr = eval(right_table)
-            tmpr['tmp'] = 1
-            out = pandas.merge(tmp, tmpr, on='tmp')
-            # out = eval(left_table+'.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
-            return eval("out.query('"+left_col + binop + right_col+"')")
-
-
 def eval_not(condition):
     cond_lower = [c.lower() for c in condition]
     if 'not' in cond_lower:
@@ -374,11 +303,13 @@ def combine_and(left_cond, right_result):
                     'right_result.merge(' + right_table + ', left_on="' + left_col + '", right_on="' + right_col + '", how = "inner")')
                 return out
             else:
-                right_result['tmp'] = 1
                 rt = eval(right_table)
-                rt['tmp'] = 1
-                out = pandas.merge(right_result, rt, on='tmp')
-                return eval("out.query('"+left_col + binop + right_col+"')")
+                return naive_join(right_result, rt, binop, left_col, right_col)
+                # right_result['tmp'] = 1
+                # rt = eval(right_table)
+                # rt['tmp'] = 1
+                # out = pandas.merge(right_result, rt, on='tmp')
+                # return eval("out.query('"+left_col + binop + right_col+"')")
 
 
 def eval_cond(condition):
@@ -406,13 +337,15 @@ def eval_cond(condition):
             out = eval('tmp.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'", how = "inner")')
             return out
         else:
-            tmp['tmp'] = 1
-            # tmpr = eval(right_table + "['tmp'] = 1")
-            tmpr = eval(right_table)
-            tmpr['tmp'] = 1
-            out = pandas.merge(tmp, tmpr, on='tmp')
-            # out = eval(left_table+'.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
-            return eval("out.query('"+left_col + binop + right_col+"')")
+            rt = eval(right_table)
+            return naive_join(tmp, rt, binop, left_col, right_col)
+            # tmp['tmp'] = 1
+            # # tmpr = eval(right_table + "['tmp'] = 1")
+            # tmpr = eval(right_table)
+            # tmpr['tmp'] = 1
+            # out = pandas.merge(tmp, tmpr, on='tmp')
+            # # out = eval(left_table+'.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
+            # return eval("out.query('"+left_col + binop + right_col+"')")
 
 
 def negate(conditions):
