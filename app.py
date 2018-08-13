@@ -126,36 +126,25 @@ def is_index(col):
     return False
 
 
-def index_search(col, table, value, binop):
+def index_search(col, value, binop):
     ids = []
     if 'stars' in col:
         #working with stars index
-        #todo: ids = getIDs_stars(value, binop)
-        pass
+        ids = getIDs_stars(value, binop)
     elif 'city' in col:
-        #todo: ids = getIDs_city(value)
-        pass
+        ids = getIDs_city(value)
     elif 'state' in col:
-        #todo: ids = getIDs_state(value)
-        pass
+        ids = getIDs_state(value)
     elif 'name' in col:
-        #todo: ids = getIDs_name(value)
-        pass
+        ids = getIDs_name(value)
     elif 'postal_code' in col:
-        #todo: ids = getIDs_postal(value)
-        pass
-    elif 'label' in col:
-        #todo: ids = getIDs_label(value)
-        pass
-    elif 'funny' in col:
-        #todo: ids = getIDs_funny(value, binop)
-        pass
-    elif 'useful' in col:
-        #todo: ids = getIDs_useful(value, binop)
-        pass
-    else:
-        #todo: ids = query on the table
-        pass
+        ids = getIDs_postal(value)
+    # elif 'label' in col:
+    #     ids = getIDs_label(value)
+    # elif 'funny' in col:
+    #     ids = getIDs_funny(value, binop)
+    # elif 'useful' in col:
+    #     ids = getIDs_useful(value, binop)
     return ids
 
 
@@ -227,6 +216,84 @@ def eval_or(conditions, columns):
         return combine_or(left_eval, right_eval, columns)
     else:
         return eval_and(conditions)
+
+
+def eval_and_testing(conditions, prev_inds):
+    final_inds = []
+    cond_lower = [c.lower() for c in conditions]
+    if 'and' in cond_lower:
+        a = cond_lower.index('and')
+        cond = conditions[0:a]
+        rightconds = conditions[a + 1:]
+
+        cond = eval_not(cond)  # negate cond
+        left_left, binop, left_right = comparision_parse(cond)
+        ntable, leftt, rightt, left_col, right_col = check_num_table(left_left, left_right)
+
+        if ntable == 1:
+            # filter table immediately, get indexes
+            # todo: get inds
+            inds = []
+            if right_col==None and is_index(left_col): #only value on right
+                inds = index_search(left_col, left_right, binop)
+            else: #query table
+                inds = eval(leftt + '.query("' + left_col + binop + left_right + '")')
+            # continue down right subtree
+            final_inds = eval_and_testing(rightconds, inds)
+            # no combine
+            pass
+        else:
+            inds = []
+            # ignore cond and continue down right subtree
+            right_table = eval_and_testing(rightconds, inds)
+            # evaluate cond
+            final_inds = combine_and_testing(right_table, cond, prev_inds)
+            pass
+    else:
+        # last condition, negate and then evaluate
+        cond = eval_not(conditions)
+        final_inds = eval_cond_testing(cond, prev_inds)
+
+    return final_inds
+
+
+def combine_and_testing(right_table, cond, prev_inds):
+    pass
+
+
+def eval_cond_testing(condition, prev_inds):
+    result = []
+    left, binop, right = comparision_parse(condition)
+    left_left, arithm_op, left_right, binop, right = arithm_parse_eval(left, binop, right)
+    ntable, left_table, right_table, left_col, right_col = check_num_table(left_left, right)
+    if ntable == 1:
+        # we can evaluate the condition here itself and return
+        # todo: ids = index_search(left_col, right, binop)
+        # todo: get and return rows from index_search bids
+        return eval(left_table + '.query("' + left_col + binop + right + '")')
+        # cond_str = left_table + create_cond_str(condition)
+        # print(cond_str)
+        # return eval(cond_str)
+    else:
+        tmp = eval(left_table)
+        # eval arithm operator and replace left table with tmp
+        if arithm_op != None:
+            new_col = eval(left_table + "[" + left_col + "]" + arithm_op + left_left)
+            tmp.update(eval("pandas.DataFrame({'" + left_col + "': new_col})"))
+        # join
+        if binop == '=' or binop == '==':
+            print("merge")
+            out = eval(
+                'tmp.merge(' + right_table + ', left_on="' + left_col + '", right_on="' + right_col + '", how = "inner")')
+            return out
+        else:
+            tmp['tmp'] = 1
+            # tmpr = eval(right_table + "['tmp'] = 1")
+            tmpr = eval(right_table)
+            tmpr['tmp'] = 1
+            out = pandas.merge(tmp, tmpr, on='tmp')
+            # out = eval(left_table+'.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
+            return eval("out.query('" + left_col + binop + right_col + "')")
 
 
 def combine_or(table1, table2, columns):
