@@ -4,11 +4,12 @@ import numpy as np
 # STARS INDEX
 # creates an index of business_id's by star ratings in ascending order (1->5)
 def setIndex_stars():
-    global stars
     stars = pd.read_csv('review-1m.csv')
     stars = stars[['stars', 'business_id']]
     stars = stars.set_index('stars')
     stars = stars.sort_index()
+    
+    stars.to_csv('stars_index.csv', index=True)
 
 # returns an arraylist of business_id's with stars rating of VAL
 def getIDs_stars(val):
@@ -27,6 +28,8 @@ def setIndex_city():
     city = city.reindex()
     # print(city.head())
     # city_state.loc[('Phoenix')]
+    
+    city.to_csv('city_index.csv', index=True)
 
 # returns an arraylist of business_id's in exact city
 # make sure to INPUT using "" ie. getIDs_city("Champaign")
@@ -45,6 +48,8 @@ def setIndex_state():
     state = state.sort_index()
     # state = state.reindex()
     # print(state.index())
+    
+    state.to_csv('state_index.csv', index=True)
 
 # returns an arraylist of business_id's in exact state
 # make sure to INPUT using "" ie. getIDs_state("IL")
@@ -61,6 +66,8 @@ def setIndex_name():
     name = name.set_index(['name'])
     name = name.sort_index()
     # print(name.head())
+    
+    name.to_csv('name_index.csv', index=True)
 
 # returns an arraylist of business_id's with exact business name in ascending order
 # make sure to INPUT using "" ie. getIDs_name("Sushi Ichiban")
@@ -77,6 +84,8 @@ def setIndex_postal():
     postal = postal.set_index(['postal_code'])
     postal = postal.sort_index()
     # print(name.head())
+    
+    postal.to_csv('postal_index.csv', index=True)
 
 # returns an arraylist of business_id's in exact postal code
 # make sure to INPUT using "" ie. getIDs_postal("61820")
@@ -84,16 +93,31 @@ def getIDs_postal(input):
     postal_index = postal.loc[input]
     return postal_index.values
 
-# PHOTOS INDEX
-# data = pd.read_csv('photos.csv', usecols=['label'], iterator=True, chunksize=50000)
+# sets all index and saves them to a '#NAME#_index.csv' file
+def setIndex_all():
+    setIndex_stars()
+    setIndex_city()
+    setIndex_state()
+    setIndex_name()
+    setIndex_postal()
+    print("All indexes have been saved to file!")
 
-# for chunk in data = pd.read_csv('photos.csv', usecols=['label', 'business_id'], iterator=True, chunksize=50000, error_bad_lines=False):
-#
-#     chunk.to_csv('photos_sorted.csv', mode='a')
-#     chunk = chunk[(chunk.label == "True")]
-#     chunk = chunk['business_id']
-#     chunk.to_csv('photos_sorted.csv', mode='a')
-#
-# photos_index = pd.read_csv('photos_sorted.csv')
-# photos_sorted = photos.query('label == "True"')
-# print(photos_sorted.head())
+# loads all '#NAME#_index.csv' file into global variables
+# this function must be called before calling any .getIDs functions
+def loadIndex_all():
+    global stars, city, state, name, postal
+    stars = pd.read_csv('stars_index.csv', index_col=['stars'])
+    city = pd.read_csv('city_index.csv', index_col=['city'])
+    state = pd.read_csv('state_index.csv', index_col=['state'])
+    name = pd.read_csv('name_index.csv', index_col=['name'])
+    postal = pd.read_csv('postal_index.csv', index_col=['postal_code'])
+
+# use command: python -m index_test
+if __name__ == "__main__":
+    setIndex_all()
+    loadIndex_all()
+    # print(getIDs_stars(1))
+    # print(getIDs_city("Champaign))
+    # print(getIDs_state("IL"))
+    # print(getIDs_name("Sushi Ichiban"))
+    # print(getIDs_postal("61820"))
