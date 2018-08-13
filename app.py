@@ -6,6 +6,8 @@ from sqlparse.tokens import *
 import re
 import time
 from collections import defaultdict
+import numpy
+import math
 
 conds = ["movies.movie_title == 'King Kong'","movies.actor_1_facebook_likes < 20000","actor_2_facebook_likes > actor_1_facebook_likes","movies.title_year < 2010"]
 
@@ -37,10 +39,13 @@ def main():
 
 
 def preprocessing():
-    pass
+    setIndex_all()
 
 
 def parsing(query):
+    #load indexes
+    loadIndex_all()
+
     start = time.time()
     select = -1
     from_ind = -1
@@ -99,18 +104,18 @@ def bid_union(rbid, lbid):
 
 
 def naive_join(table1, table2, binop, col1, col2):
-    columns = table1.columns.values
-    columns = columns.append(table2.columns.values)
+    columns1 = table1.columns.values
+    columns2 = table2.columns.values
+    columns = numpy.append(columns1, columns2)
     new_df = pandas.DataFrame(columns=columns)
     for i1, row1 in table1.iterrows():
-        v1 = getattr(row1, col1)
-        row1['tmp'] = 1
+        v1 = row1[col1]
         for i2, row2 in table2.iterrows():
             v2 = row2[col2]
-            row2['tmp'] = 1
-            if eval(v1 + binop + v2):
-                new_row = pandas.merge(row1, row2, on='tmp').drop(columns=['tmp'])
-                new_df.append(new_row)
+            if (not math.isnan(v1)) and (not math.isnan(v2)) and eval(str(v1) + binop + str(v2)):
+                row = row1.append(row2)
+                row = row.to_frame()
+                new_df.append(row)
     return new_df
 
 
@@ -247,79 +252,6 @@ def eval_and(conditions):
         return eval_cond(cond)
 
 
-def eval_and_testing(conditions, prev_inds):
-    final_inds = []
-    cond_lower = [c.lower() for c in conditions]
-    if 'and' in cond_lower:
-        a = cond_lower.index('and')
-        cond = conditions[0:a]
-        rightconds = conditions[a + 1:]
-
-        cond = eval_not(cond) #negate cond
-        left_left, binop, left_right = comparision_parse(cond)
-        ntable, leftt, rightt, left_col, right_col = check_num_table(left_left, left_right)
-
-        if ntable == 1:
-            #filter table immediately, get indexes
-            #todo: get inds
-            inds = []
-            # continue down right subtree
-            final_inds =  eval_and_testing(rightconds, inds)
-            # no combine
-            pass
-        else:
-            inds = []
-            #ignore cond and continue down right subtree
-            right_table = eval_and_testing(rightconds, inds)
-            #evaluate cond
-            final_inds = combine_and_testing(right_table, cond, prev_inds)
-            pass
-    else:
-        #last condition, negate and then evaluate
-        cond = eval_not(conditions)
-        final_inds = eval_cond_testing(cond, prev_inds)
-        
-    return final_inds
-
-
-def combine_and_testing(right_table, cond, prev_inds):
-    pass
-
-
-def eval_cond_testing(condition, prev_inds):
-    result = []
-    left,binop,right = comparision_parse(condition)
-    left_left, arithm_op, left_right, binop, right = arithm_parse_eval(left,binop,right)
-    ntable, left_table, right_table, left_col, right_col = check_num_table(left_left, right)
-    if ntable == 1:
-        #we can evaluate the condition here itself and return
-        #todo: ids = index_search(left_col, right, binop)
-        #todo: get and return rows from index_search bids
-        return eval(left_table + '.query("'+left_col + binop + right+ '")')
-        # cond_str = left_table + create_cond_str(condition)
-        # print(cond_str)
-        # return eval(cond_str)
-    else:
-        tmp = eval(left_table)
-        #eval arithm operator and replace left table with tmp
-        if arithm_op != None:
-            new_col = eval(left_table+"["+left_col+"]"+arithm_op+left_left)
-            tmp.update(eval("pandas.DataFrame({'"+left_col+"': new_col})"))
-        #join
-        if binop == '=' or binop == '==':
-            print("merge")
-            out = eval('tmp.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'", how = "inner")')
-            return out
-        else:
-            tmp['tmp'] = 1
-            # tmpr = eval(right_table + "['tmp'] = 1")
-            tmpr = eval(right_table)
-            tmpr['tmp'] = 1
-            out = pandas.merge(tmp, tmpr, on='tmp')
-            # out = eval(left_table+'.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
-            return eval("out.query('"+left_col + binop + right_col+"')")
-
-
 def eval_not(condition):
     cond_lower = [c.lower() for c in condition]
     if 'not' in cond_lower:
@@ -370,11 +302,13 @@ def combine_and(left_cond, right_result):
                     'right_result.merge(' + right_table + ', left_on="' + left_col + '", right_on="' + right_col + '", how = "inner")')
                 return out
             else:
-                right_result['tmp'] = 1
                 rt = eval(right_table)
-                rt['tmp'] = 1
-                out = pandas.merge(right_result, rt, on='tmp')
-                return eval("out.query('"+left_col + binop + right_col+"')")
+                return naive_join(right_result, rt, binop, left_col, right_col)
+                # right_result['tmp'] = 1
+                # rt = eval(right_table)
+                # rt['tmp'] = 1
+                # out = pandas.merge(right_result, rt, on='tmp')
+                # return eval("out.query('"+left_col + binop + right_col+"')")
 
 
 def eval_cond(condition):
@@ -402,13 +336,15 @@ def eval_cond(condition):
             out = eval('tmp.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'", how = "inner")')
             return out
         else:
-            tmp['tmp'] = 1
-            # tmpr = eval(right_table + "['tmp'] = 1")
-            tmpr = eval(right_table)
-            tmpr['tmp'] = 1
-            out = pandas.merge(tmp, tmpr, on='tmp')
-            # out = eval(left_table+'.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
-            return eval("out.query('"+left_col + binop + right_col+"')")
+            rt = eval(right_table)
+            return naive_join(tmp, rt, binop, left_col, right_col)
+            # tmp['tmp'] = 1
+            # # tmpr = eval(right_table + "['tmp'] = 1")
+            # tmpr = eval(right_table)
+            # tmpr['tmp'] = 1
+            # out = pandas.merge(tmp, tmpr, on='tmp')
+            # # out = eval(left_table+'.merge('+right_table+', left_on="'+left_col+'", right_on="'+right_col+'")')
+            # return eval("out.query('"+left_col + binop + right_col+"')")
 
 
 def negate(conditions):
@@ -641,6 +577,129 @@ def get_column(condition):
 
 def rm_white(string):
     return string.replace(" ", "")
+
+
+# STARS INDEX
+# creates an index of business_id's by star ratings in ascending order (1->5)
+def setIndex_stars():
+    stars = pandas.read_csv(path + 'review-1m.csv')
+    stars = stars[['stars', 'business_id']]
+    stars = stars.set_index('stars')
+    stars = stars.sort_index()
+
+    stars.to_csv('stars_index.csv', index=True)
+
+
+# returns an arraylist of business_id's with stars rating of VAL
+def getIDs_stars(val):
+    input = "index == " + str(val)
+    stars_index = stars.query(input)
+    return stars_index.values
+
+
+# CITY INDEX
+# creates an index of business_id's by city in ascending order (#->Z)
+def setIndex_city():
+    global city
+    city = pandas.read_csv(path + 'business.csv')
+    city = city[['city', 'business_id']]
+    city = city.set_index(['city'])
+    city = city.sort_index()
+    city = city.reindex()
+    # print(city.head())
+    # city_state.loc[('Phoenix')]
+
+    city.to_csv('city_index.csv', index=True)
+
+
+# returns an arraylist of business_id's in exact city
+# make sure to INPUT using "" ie. getIDs_city("Champaign")
+def getIDs_city(input):
+    city_index = city.loc[input]
+    # print(city_index.head())
+    return city_index.values
+
+
+# STATE INDEX
+# creates an index of business_id's by state in ascending order (01->ZET)
+def setIndex_state():
+    global state
+    state = pandas.read_csv(path + 'business.csv')
+    state = state[['state', 'business_id']]
+    state = state.set_index(['state'])
+    state = state.sort_index()
+    # state = state.reindex()
+    # print(state.index())
+
+    state.to_csv('state_index.csv', index=True)
+
+
+# returns an arraylist of business_id's in exact state
+# make sure to INPUT using "" ie. getIDs_state("IL")
+def getIDs_state(input):
+    state_index = state.loc[input]
+    return state_index.values
+
+
+# NAME INDEX
+# creates an index of business_id's by business name in ascending order
+def setIndex_name():
+    global name
+    name = pandas.read_csv(path + 'business.csv')
+    name = name[['name', 'business_id']]
+    name = name.set_index(['name'])
+    name = name.sort_index()
+    # print(name.head())
+
+    name.to_csv('name_index.csv', index=True)
+
+
+# returns an arraylist of business_id's with exact business name in ascending order
+# make sure to INPUT using "" ie. getIDs_name("Sushi Ichiban")
+def getIDs_name(input):
+    name_index = name.loc[input]
+    return name_index.values
+
+
+# POSTAL INDEX
+# creates an index of business_id's by postal code in ascending order
+def setIndex_postal():
+    global postal
+    postal = pandas.read_csv(path + 'business.csv')
+    postal = postal[['postal_code', 'business_id']]
+    postal = postal.set_index(['postal_code'])
+    postal = postal.sort_index()
+    # print(name.head())
+
+    postal.to_csv('postal_index.csv', index=True)
+
+
+# returns an arraylist of business_id's in exact postal code
+# make sure to INPUT using "" ie. getIDs_postal("61820")
+def getIDs_postal(input):
+    postal_index = postal.loc[input]
+    return postal_index.values
+
+
+# sets all index and saves them to a '#NAME#_index.csv' file
+def setIndex_all():
+    setIndex_stars()
+    setIndex_city()
+    setIndex_state()
+    setIndex_name()
+    setIndex_postal()
+    print("All indexes have been saved to file!")
+
+
+# loads all '#NAME#_index.csv' file into global variables
+# this function must be called before calling any .getIDs functions
+def loadIndex_all():
+    global stars, city, state, name, postal
+    stars = pandas.read_csv('stars_index.csv', index_col=['stars'])
+    city = pandas.read_csv('city_index.csv', index_col=['city'])
+    state = pandas.read_csv('state_index.csv', index_col=['state'])
+    name = pandas.read_csv('name_index.csv', index_col=['name'])
+    postal = pandas.read_csv('postal_index.csv', index_col=['postal_code'])
 
 
 if __name__ == "__main__":
