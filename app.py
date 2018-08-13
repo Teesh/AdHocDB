@@ -154,10 +154,6 @@ def index_search(col, table, value, binop):
     return ids
 
 
-def table_filter():
-    pass
-
-
 def query_plan(table_list, where_condition, select_columns, where_columns):
     #get tables that are needed
     for table in table_list:
