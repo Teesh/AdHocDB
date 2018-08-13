@@ -604,7 +604,7 @@ def getIDs_stars(val):
 # CITY INDEX
 # creates an index of business_id's by city in ascending order (#->Z)
 def setIndex_city():
-    global city
+#     global city
     city = pandas.read_csv(path + 'business.csv')
     city = city[['city', 'business_id']]
     city = city.set_index(['city'])
@@ -627,7 +627,7 @@ def getIDs_city(input):
 # STATE INDEX
 # creates an index of business_id's by state in ascending order (01->ZET)
 def setIndex_state():
-    global state
+#     global state
     state = pandas.read_csv(path + 'business.csv')
     state = state[['state', 'business_id']]
     state = state.set_index(['state'])
@@ -648,7 +648,7 @@ def getIDs_state(input):
 # NAME INDEX
 # creates an index of business_id's by business name in ascending order
 def setIndex_name():
-    global name
+#     global name
     name = pandas.read_csv(path + 'business.csv')
     name = name[['name', 'business_id']]
     name = name.set_index(['name'])
@@ -668,7 +668,7 @@ def getIDs_name(input):
 # POSTAL INDEX
 # creates an index of business_id's by postal code in ascending order
 def setIndex_postal():
-    global postal
+#     global postal
     postal = pandas.read_csv(path + 'business.csv')
     postal = postal[['postal_code', 'business_id']]
     postal = postal.set_index(['postal_code'])
