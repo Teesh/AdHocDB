@@ -765,18 +765,18 @@ def setIndex_all():
 # this function must be called before calling any .getIDs functions
 def loadIndex_all():
     global stars, city, state, name, postal, photos, stars_row, city_row, state_row, name_row, postal_row, photos_row
-    stars = pd.read_csv('stars_index.csv', index_col=['stars'])
-    stars_row = pd.read_csv('stars_row.csv', index_col=['stars'])
-    city = pd.read_csv('city_index.csv', index_col=['city'])
-    city_row = pd.read_csv('city_row.csv', index_col=['city'])
-    state = pd.read_csv('state_index.csv', index_col=['state'])
-    state_row = pd.read_csv('state_row.csv', index_col=['state'])
-    name = pd.read_csv('name_index.csv', index_col=['name'])
-    name_row = pd.read_csv('name_row.csv', index_col=['name'])
-    postal = pd.read_csv('postal_index.csv', index_col=['postal_code'])
-    postal_row = pd.read_csv('postal_row.csv', index_col=['postal_code'])
-    photos = pd.read_csv('photos_index.csv', index_col=['label'])
-    photos_row = pd.read_csv('photos_row.csv', index_col=['label'])
+    stars = pandas.read_csv('stars_index.csv', index_col=['stars'])
+    stars_row = pandas.read_csv('stars_row.csv', index_col=['stars'])
+    city = pandas.read_csv('city_index.csv', index_col=['city'])
+    city_row = pandas.read_csv('city_row.csv', index_col=['city'])
+    state = pandas.read_csv('state_index.csv', index_col=['state'])
+    state_row = pandas.read_csv('state_row.csv', index_col=['state'])
+    name = pandas.read_csv('name_index.csv', index_col=['name'])
+    name_row = pandas.read_csv('name_row.csv', index_col=['name'])
+    postal = pandas.read_csv('postal_index.csv', index_col=['postal_code'])
+    postal_row = pandas.read_csv('postal_row.csv', index_col=['postal_code'])
+    photos = pandas.read_csv('photos_index.csv', index_col=['label'])
+    photos_row = pandas.read_csv('photos_row.csv', index_col=['label'])
     print("All indexes have been loaded!")
 
 
