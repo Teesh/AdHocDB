@@ -709,7 +709,7 @@ def setIndex_postal():
 
     postal.to_csv('postal_index.csv', index=True)
 
-    postal_row = pd.read_csv('business.csv')
+    postal_row = pandas.read_csv('business.csv')
     postal_row = postal_row[['postal_code']]
     postal_row.reset_index(level=0, inplace=True)
     postal_row = postal_row.rename(columns={'index': 'row_num'})
@@ -725,6 +725,32 @@ def getIDs_postal(input):
     postal_row_index = postal_row.loc[input]
     return postal_index.values, postal_row_index.values
 
+# PHOTOS INDEX
+def setIndex_photos():
+    photos = pandas.read_csv(path + 'photos.csv')
+    photos = photos[['label', 'business_id']]
+    photos = photos.set_index(['label'])
+    photos = photos.sort_index()
+    # print(name.head())
+
+    photos.to_csv('photos_index.csv', index=True)
+
+    photos_row = pandas.read_csv('photos.csv')
+    photos_row = photos_row[['label']]
+    photos_row.reset_index(level=0, inplace=True)
+    photos_row = photos_row.rename(columns={'index': 'row_num'})
+    photos_row = photos_row.set_index('label')
+    photos_row = photos_row.sort_index()
+
+    photos_row.to_csv('photos_row.csv', index=True)
+
+# returns an arraylist of business_id's with specific photo label (outside, inside, food)
+# make sure to INPUT using "" ie. getIDs_photos("inside")
+def getIDs_photos(input):
+    photos_index = photos.loc[input]
+    photos_row_index = photos_row.loc[input]
+    return photos_index.values, photos_row_index.values   
+
 # sets all index and saves them to a '#NAME#_index.csv' file
 def setIndex_all():
     setIndex_stars()
@@ -732,12 +758,13 @@ def setIndex_all():
     setIndex_state()
     setIndex_name()
     setIndex_postal()
+    setIndex_photos()
     print("All indexes have been saved to file!")
 
 # loads all '#NAME#_index.csv' file into global variables
 # this function must be called before calling any .getIDs functions
 def loadIndex_all():
-    global stars, city, state, name, postal, stars_row, city_row, state_row, name_row, postal_row
+    global stars, city, state, name, postal, photos, stars_row, city_row, state_row, name_row, postal_row, photos_row
     stars = pd.read_csv('stars_index.csv', index_col=['stars'])
     stars_row = pd.read_csv('stars_row.csv', index_col=['stars'])
     city = pd.read_csv('city_index.csv', index_col=['city'])
@@ -748,6 +775,8 @@ def loadIndex_all():
     name_row = pd.read_csv('name_row.csv', index_col=['name'])
     postal = pd.read_csv('postal_index.csv', index_col=['postal_code'])
     postal_row = pd.read_csv('postal_row.csv', index_col=['postal_code'])
+    photos = pd.read_csv('photos_index.csv', index_col=['label'])
+    photos_row = pd.read_csv('photos_row.csv', index_col=['label'])
     print("All indexes have been loaded!")
 
 
