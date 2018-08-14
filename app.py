@@ -775,8 +775,8 @@ def loadIndex_all():
     name_row = pandas.read_csv('name_row.csv', index_col=['name'])
     postal = pandas.read_csv('postal_index.csv', index_col=['postal_code'])
     postal_row = pandas.read_csv('postal_row.csv', index_col=['postal_code'])
-    photos = pandas.read_csv('photos_index.csv', index_col=['label'])
-    photos_row = pandas.read_csv('photos_row.csv', index_col=['label'])
+    photos = pandas.read_csv('photos_index.csv', index_col=['label'], engine='python')
+    photos_row = pandas.read_csv('photos_row.csv', index_col=['label'], engine='python')
     print("All indexes have been loaded!")
 
 
