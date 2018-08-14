@@ -727,7 +727,7 @@ def getIDs_postal(input):
 
 # PHOTOS INDEX
 def setIndex_photos():
-    photos = pandas.read_csv(path + 'photos.csv')
+    photos = pandas.read_csv(path + 'photos.csv', engine='python')
     photos = photos[['label', 'business_id']]
     photos = photos.set_index(['label'])
     photos = photos.sort_index()
@@ -735,7 +735,7 @@ def setIndex_photos():
 
     photos.to_csv('photos_index.csv', index=True)
 
-    photos_row = pandas.read_csv('photos.csv')
+    photos_row = pandas.read_csv(path + 'photos.csv', engine='python')
     photos_row = photos_row[['label']]
     photos_row.reset_index(level=0, inplace=True)
     photos_row = photos_row.rename(columns={'index': 'row_num'})
